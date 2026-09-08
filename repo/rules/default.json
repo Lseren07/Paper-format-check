@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "1.0",
+  "name": "default-paper-format-rules",
+  "page": {
+    "margin": {
+      "top": "2.5cm",
+      "right": "2.5cm",
+      "bottom": "2.5cm",
+      "left": "2.5cm"
+    }
+  },
+  "body": {
+    "font": "宋体",
+    "size": "小四",
+    "line_spacing": "1.5",
+    "first_line_indent": "2字符",
+    "alignment": "justify"
+  },
+  "title1": {
+    "font": "黑体",
+    "size": "三号",
+    "bold": true,
+    "alignment": "center"
+  },
+  "title2": {
+    "font": "黑体",
+    "size": "四号",
+    "bold": true,
+    "alignment": "left"
+  }
+}

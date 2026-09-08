@@ -1,0 +1,12 @@
+# Stage 0 runtime and build artifacts
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+frontend/**/.vite/
+
+uploads/*
+!uploads/.gitignore
+reports/*
+!reports/.gitignore
