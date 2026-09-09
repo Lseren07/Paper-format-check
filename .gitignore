@@ -1,10 +1,33 @@
-*
-!.gitignore
-!repo/
-!repo/**
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
 
-# 本地方案文档，不纳入版本库
-论文格式检测系统开发分工方案.md
-论文格式检测系统开发方案V1.0.md
-论文格式检测系统技术设计文档_V1.0.md
-论文格式检测系统接口设计文档_V1.0_.md
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Local runtime data
+.env
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+data/*.db
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Local preview and QA artifacts
+.edge-preview/
+.uv-cache/
+.docx-qa-demo/
+.pytest-tmp-*/
+debug.log
