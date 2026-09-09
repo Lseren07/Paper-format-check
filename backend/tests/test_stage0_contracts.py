@@ -2,8 +2,8 @@ from fastapi.testclient import TestClient
 import pytest
 from pydantic import ValidationError
 
-from app.main import app
-from app.models.contracts import Document, ErrorItem
+from backend.app.main import app
+from backend.app.models.contracts import Document, ErrorItem
 
 
 client = TestClient(app)
@@ -15,8 +15,7 @@ def test_health_endpoint_returns_api_version() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "status": "ok",
-        "service": "paper-format-check",
-        "api_version": "v1",
+        "service": "paper-checker-backend",
     }
 
 
