@@ -31,3 +31,9 @@ Thumbs.db
 .docx-qa-demo/
 .pytest-tmp-*/
 debug.log
+
+# Local planning documents are maintained outside the shared dev branch.
+论文格式检测系统开发分工方案.md
+论文格式检测系统开发方案V1.0.md
+论文格式检测系统技术设计文档_V1.0.md
+论文格式检测系统接口设计文档_V1.0_.md
