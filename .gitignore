@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+frontend/dist/
+npm-debug.log*
+
+# Local runtime data
+.env
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+data/*.db
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# Local preview and QA artifacts
+.edge-preview/
+.uv-cache/
+.docx-qa-demo/
+.pytest-tmp-*/
+debug.log

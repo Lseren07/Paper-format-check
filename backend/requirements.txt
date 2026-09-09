@@ -1,0 +1,9 @@
+fastapi>=0.115,<0.116
+pydantic>=2.10,<2.11
+sqlalchemy>=2.0,<2.1
+python-docx==1.1.2
+python-multipart>=0.0.20,<0.1
+uvicorn[standard]>=0.34,<0.35
+reportlab>=4.2,<5
+pytest>=8.3,<9
+httpx>=0.28,<0.29
