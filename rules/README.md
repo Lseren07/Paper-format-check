@@ -7,3 +7,5 @@
 当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`。
 
 规则引擎只依据解析后的内存 `Document` 运行。字号规则可使用 pt 或中文字号（如 `小四`），首行缩进规则可使用 pt 或“字符”单位（如 `2字符`），并优先采用 DOCX 的原始字符缩进值；对缺失的格式信息不报错。标题连续性覆盖阿拉伯数字的单级和多级标签（如 `1.`、`1.2`），目录比对会忽略末尾页码。默认规则覆盖页边距；图表规则必须显式配置列数等约束才会执行，不读取嵌入 Excel 数据；复杂目录域和中文数字编号仍需人工核对或后续增强。
+当前规则库按学校规范区分自动检测项和人工核对项。第一版自动检测规则见
+`electronic-tech-cdu-v1.json`，来源为附件1；封面、学校表格填写、目录一致性、图表和参考文献著录等暂列为人工或后续深度检测项。

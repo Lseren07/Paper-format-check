@@ -30,6 +30,7 @@ Thumbs.db
 .uv-cache/
 .docx-qa-demo/
 .pytest-tmp-*/
+.pytest-tmp/
 debug.log
 
 # Local planning documents are maintained outside the shared dev branch.

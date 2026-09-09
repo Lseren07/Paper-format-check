@@ -2,6 +2,7 @@
 import os
 import uuid
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -33,20 +34,24 @@ async def upload_paper(file: UploadFile = File(...)) -> dict:
     # 目标路径：uploads/{task_id}.docx。用任务ID命名，不用原始文件名——
     # 这样两个学生都传"论文.docx"也不会互相覆盖。
     target = UPLOAD_DIR / f"{task_id}{suffix}"
-    UPLOAD_DIR.mkdir(exist_ok=True)  # 目录不存在就创建（幂等，存在也不报错）
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # 支持配置不存在的多级目录
 
     # 边读边写边计数：不把整个文件一次性读进内存（大文件会撑爆RAM）
     # "while chunk := await file.read(READ_CHUNK)" —— := 叫"海象运算符"，
     # 它先赋值给chunk，再把值当条件判断；读到末尾返回空b""时循环结束。
     size = 0
     too_big = False
-    with target.open("wb") as out:
-        while chunk := await file.read(READ_CHUNK):
-            size += len(chunk)
-            if size > MAX_UPLOAD_MB * 1024 * 1024:
-                too_big = True
-                break          # 先跳出，让 with 自动关闭文件句柄
-            out.write(chunk)
+    try:
+        with target.open("wb") as out:
+            while chunk := await file.read(READ_CHUNK):
+                size += len(chunk)
+                if size > MAX_UPLOAD_MB * 1024 * 1024:
+                    too_big = True
+                    break          # 先跳出，让 with 自动关闭文件句柄
+                out.write(chunk)
+    except OSError as error:
+        target.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail="文件保存失败") from error
 
     # 超限：删掉已写了一半的残留文件，返回 413
     if too_big:
@@ -60,7 +65,8 @@ async def upload_paper(file: UploadFile = File(...)) -> dict:
         with zipfile.ZipFile(target) as archive:
             if "word/document.xml" not in archive.namelist():
                 raise zipfile.BadZipFile("Missing Word document XML")
-    except (OSError, zipfile.BadZipFile):
+            ET.fromstring(archive.read("word/document.xml"))
+    except (OSError, zipfile.BadZipFile, ET.ParseError):
         target.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=f"文件不是有效的 {suffix} 文档")
 

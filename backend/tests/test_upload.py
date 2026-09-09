@@ -1,4 +1,5 @@
 from io import BytesIO
+from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from fastapi.testclient import TestClient
@@ -11,7 +12,10 @@ def make_docx_bytes() -> bytes:
     stream = BytesIO()
     with ZipFile(stream, "w", ZIP_DEFLATED) as archive:
         archive.writestr("[Content_Types].xml", "<Types />")
-        archive.writestr("word/document.xml", "<w:document />")
+        archive.writestr(
+            "word/document.xml",
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" />',
+        )
     return stream.getvalue()
 
 
@@ -57,6 +61,72 @@ def test_upload_rejects_invalid_docx_content(tmp_path, monkeypatch) -> None:
     )
 
     assert response.status_code == 400
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_upload_rejects_invalid_document_xml(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+
+    stream = BytesIO()
+    with ZipFile(stream, "w", ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", "<Types />")
+        archive.writestr("word/document.xml", "not valid XML")
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("fake.docx", stream.getvalue(), "application/octet-stream")},
+    )
+
+    assert response.status_code == 400
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_upload_creates_nested_upload_directory(tmp_path, monkeypatch) -> None:
+    upload_dir = tmp_path / "missing" / "nested"
+    monkeypatch.setattr(upload, "UPLOAD_DIR", upload_dir)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("thesis.docx", make_docx_bytes(), "application/octet-stream")},
+    )
+
+    assert response.status_code == 200
+    assert upload_dir.is_dir()
+    assert len(list(upload_dir.glob("*.docx"))) == 1
+
+
+def test_upload_cleans_partial_file_when_write_fails(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    original_open = Path.open
+
+    class FailingWriter:
+        def __init__(self, path: Path) -> None:
+            self.file = original_open(path, "wb")
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            self.file.close()
+            return False
+
+        def write(self, chunk: bytes) -> None:
+            self.file.write(chunk[:1])
+            raise OSError("simulated disk write failure")
+
+    def failing_open(path: Path, mode: str = "r", *args, **kwargs):
+        if mode == "wb":
+            return FailingWriter(path)
+        return original_open(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", failing_open)
+
+    response = TestClient(app, raise_server_exceptions=False).post(
+        "/api/v1/paper/upload",
+        files={"file": ("thesis.docx", make_docx_bytes(), "application/octet-stream")},
+    )
+
+    assert response.status_code == 500
     assert list(tmp_path.iterdir()) == []
 
 
