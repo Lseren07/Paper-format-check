@@ -3,6 +3,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from docx import Document as BuildDocument
 from docx.shared import Inches
 from docx.enum.style import WD_STYLE_TYPE
+from docx.oxml.ns import qn
 from PIL import Image
 
 import pytest
@@ -95,3 +96,19 @@ def test_parse_docx_keeps_drawing_relationship_metadata() -> None:
     assert drawing["target"].endswith(".png")
     assert drawing["width_emu"] > 0
     assert drawing["height_emu"] > 0
+
+
+def test_parse_docx_extracts_page_margins_and_table_cell_paragraphs() -> None:
+    source = BuildDocument()
+    source.sections[0].top_margin = Inches(1)
+    cell = source.add_table(rows=1, cols=1).cell(0, 0)
+    cell.paragraphs[0].text = "表格正文"
+    cell.paragraphs[0].runs[0].font.name = "黑体"
+    ind = cell.paragraphs[0]._p.get_or_add_pPr().get_or_add_ind()
+    ind.set(qn("w:firstLineChars"), "200")
+    stream = BytesIO(); source.save(stream)
+    parsed = parse_docx(BytesIO(stream.getvalue()))
+    table_paragraph = next(paragraph for paragraph in parsed.paragraphs if paragraph["location"]["part"] == "table")
+    assert parsed.sections[0]["margins_pt"]["top"] == 72
+    assert table_paragraph["text"] == "表格正文"
+    assert table_paragraph["format"]["first_line_indent_chars"] == 2

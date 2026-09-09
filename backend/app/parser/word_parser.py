@@ -30,6 +30,31 @@ def _drawings(paragraph, relationships: dict[str, str]) -> list[dict]:
     return drawings
 
 
+def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[str, str], *, location: dict) -> dict:
+    style_id = paragraph.style.style_id
+    effective = resolve_style(style_id, resources)
+    runs = []
+    for run in paragraph.runs:
+        font = run.font
+        runs.append({"text": run.text, "font": {"effective": font.name or (effective.get("font") or {}).get("eastAsia"), "ascii": (effective.get("font") or {}).get("ascii"), "east_asia": (effective.get("font") or {}).get("eastAsia")}, "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
+    pf = paragraph.paragraph_format
+    alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
+    heading_level = None
+    match = re.search(r"(?:Heading|标题)\s*([1-9])", paragraph.style.name or "", re.I)
+    if match:
+        heading_level = int(match.group(1))
+    ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
+    first_line_chars = ind.get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}firstLineChars") if ind is not None else None
+    return {
+        "paragraph_id": f"p-{index:04d}", "index": index - 1, "text": paragraph.text,
+        "style": {"id": style_id, "name": paragraph.style.name, "based_on": []},
+        "format": {"alignment": alignment, "line_spacing": pf.line_spacing, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": pf.first_line_indent.pt if pf.first_line_indent else None, "first_line_indent_chars": int(first_line_chars) / 100 if first_line_chars else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
+        "runs": runs, "drawings": _drawings(paragraph, relationships),
+        "heading": {"level": heading_level, "source": "style" if heading_level else None},
+        "numbering": None, "location": location,
+    }
+
+
 def _open_source(source: str | Path | BinaryIO) -> tuple[bytes, str | None]:
     """统一读取路径或文件对象；只保留字节，避免后续依赖文件句柄状态。"""
     if isinstance(source, (str, Path)):
@@ -76,14 +101,7 @@ def parse_docx(
     paragraphs: list[dict] = []
     counters: dict[int, list[int]] = {}
     for index, paragraph in enumerate(docx.paragraphs):
-        style_id = paragraph.style.style_id
-        effective = resolve_style(style_id, resources)
-        runs = []
-        for run in paragraph.runs:
-            font = run.font
-            runs.append({"text": run.text, "font": {"effective": font.name or (effective.get("font") or {}).get("eastAsia"), "ascii": (effective.get("font") or {}).get("ascii"), "east_asia": (effective.get("font") or {}).get("eastAsia")}, "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
-        pf = paragraph.paragraph_format
-        alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
+        paragraph_data = _paragraph_data(paragraph, index + 1, resources, resources.get("relationships", {}), location={"part": "document", "section_index": 0, "table_index": None, "row_index": None, "column_index": None})
         numbering = None
         num_pr = paragraph._p.pPr.numPr if paragraph._p.pPr is not None else None
         if num_pr is not None:
@@ -96,30 +114,20 @@ def parse_docx(
             current[ilvl] += 1
             del current[ilvl + 1:]
             numbering = {"num_id": num_id, "ilvl": ilvl, **definition, "label": numbering_label(definition.get("level_text"), current, definition.get("format"))}
-        heading_level = None
-        match = re.search(r"(?:Heading|标题)\s*([1-9])", paragraph.style.name or "", re.I)
-        if match: heading_level = int(match.group(1))
-        paragraphs.append(
-            {
-                "paragraph_id": f"p-{index + 1:04d}",
-                "index": index,
-                "text": paragraph.text,
-                "style": {"id": style_id, "name": paragraph.style.name, "based_on": []},
-                "format": {"alignment": alignment, "line_spacing": pf.line_spacing, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": pf.first_line_indent.pt if pf.first_line_indent else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
-                "runs": runs,
-                "drawings": _drawings(paragraph, resources.get("relationships", {})),
-                "heading": {"level": heading_level, "source": "style" if heading_level else None},
-                "numbering": numbering,
-                "location": {"part": "document", "section_index": 0, "table_index": None, "row_index": None, "column_index": None},
-            }
-        )
+        paragraph_data["numbering"] = numbering
+        paragraphs.append(paragraph_data)
 
     tables = []
     for ti, table in enumerate(docx.tables):
         cells = []
         for ri, row in enumerate(table.rows):
             for ci, cell in enumerate(row.cells):
-                cells.append({"row_index": ri, "column_index": ci, "text": cell.text, "paragraph_ids": [f"p-{i + 1:04d}" for i, _ in enumerate(cell.paragraphs)]})
+                paragraph_ids = []
+                for cell_paragraph in cell.paragraphs:
+                    paragraph_data = _paragraph_data(cell_paragraph, len(paragraphs) + 1, resources, resources.get("relationships", {}), location={"part": "table", "section_index": 0, "table_index": ti, "row_index": ri, "column_index": ci})
+                    paragraphs.append(paragraph_data)
+                    paragraph_ids.append(paragraph_data["paragraph_id"])
+                cells.append({"row_index": ri, "column_index": ci, "text": cell.text, "paragraph_ids": paragraph_ids})
         tables.append({"table_index": ti, "rows": len(table.rows), "columns": len(table.columns), "cells": cells})
     headers, footers = [], []
     for si, section in enumerate(docx.sections):
@@ -136,5 +144,5 @@ def parse_docx(
         tables=tables,
         headers=headers,
         footers=footers,
-        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None} for i, section in enumerate(docx.sections)],
+        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}} for i, section in enumerate(docx.sections)],
     )
