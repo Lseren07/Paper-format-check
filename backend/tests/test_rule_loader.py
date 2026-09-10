@@ -8,6 +8,9 @@ from backend.app.rules.loader import load_rules
 from backend.app.rules.contracts import CheckRule
 
 
+DEFAULT_RULES = Path(__file__).parents[2] / "rules" / "default.json"
+
+
 def test_load_rules_accepts_stage2_schema(tmp_path: Path) -> None:
     path = tmp_path / "rules.json"
     path.write_text(json.dumps({
@@ -25,8 +28,28 @@ def test_load_rules_rejects_missing_check_identity() -> None:
 
 
 def test_load_legacy_default_rule_file_maps_flat_fields() -> None:
-    rules = load_rules(Path(__file__).parents[2] / "rules" / "default.json")
+    rules = load_rules(DEFAULT_RULES)
     assert any(check.type == "font" for check in rules.checks)
+
+
+def test_default_rule_file_keeps_chinese_expected_values() -> None:
+    rules = load_rules(DEFAULT_RULES)
+    expected = {check.id: check.expected for check in rules.checks}
+    assert expected["body-font"]["font"] == "宋体"
+    assert expected["body-size"]["size"] == "小四"
+    assert expected["body-first-line-indent"]["first_line_indent"] == "2字符"
+    assert expected["title1-font"]["font"] == "黑体"
+    assert expected["title1-size"]["size"] == "三号"
+    assert expected["title2-font"]["font"] == "黑体"
+    assert expected["title2-size"]["size"] == "四号"
+
+
+def test_legacy_service_loader_uses_stage2_rule_contract() -> None:
+    from backend.app.services.rules import load_rules as legacy_load_rules
+
+    rules = legacy_load_rules(DEFAULT_RULES)
+
+    assert rules.model_dump() == load_rules(DEFAULT_RULES).model_dump()
 
 
 def test_rule_target_rejects_unknown_name_and_invalid_heading_level() -> None:

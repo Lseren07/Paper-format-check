@@ -3,22 +3,140 @@
   "schema_version": "1.0",
   "name": "default-paper-format-rules",
   "checks": [
-    {"id": "page-margin", "type": "page_margin", "target": "all", "expected": {"margin": {"top": "2.5cm", "right": "2.5cm", "bottom": "2.5cm", "left": "2.5cm"}}},
-    {"id": "body-font", "type": "font", "target": "body", "expected": {"font": "宋体"}},
-    {"id": "body-size", "type": "size", "target": "body", "expected": {"size": "小四"}},
-    {"id": "body-line-spacing", "type": "line_spacing", "target": "body", "expected": {"line_spacing": "1.5"}},
-    {"id": "body-first-line-indent", "type": "paragraph_indent", "target": "body", "expected": {"first_line_indent": "2字符"}},
-    {"id": "body-alignment", "type": "alignment", "target": "body", "expected": {"alignment": "justify"}},
-    {"id": "title1-font", "type": "font", "target": "title1", "expected": {"font": "黑体"}},
-    {"id": "title1-size", "type": "size", "target": "title1", "expected": {"size": "三号"}},
-    {"id": "title1-alignment", "type": "alignment", "target": "title1", "expected": {"alignment": "center"}},
-    {"id": "title1-bold", "type": "bold", "target": "title1", "expected": {"bold": true}},
-    {"id": "title2-font", "type": "font", "target": "title2", "expected": {"font": "黑体"}},
-    {"id": "title2-size", "type": "size", "target": "title2", "expected": {"size": "四号"}},
-    {"id": "title2-alignment", "type": "alignment", "target": "title2", "expected": {"alignment": "left"}},
-    {"id": "title2-bold", "type": "bold", "target": "title2", "expected": {"bold": true}},
-    {"id": "heading-numbering", "type": "heading_numbering", "target": "all", "expected": {}},
-    {"id": "toc-consistency", "type": "toc_consistency", "target": "all", "expected": {}},
-    {"id": "reference-baseline", "type": "reference_baseline", "target": "all", "expected": {}}
+    {
+      "id": "page-margin",
+      "type": "page_margin",
+      "target": "all",
+      "expected": {
+        "margin": {
+          "top": "2.5cm",
+          "right": "2.5cm",
+          "bottom": "2.5cm",
+          "left": "2.5cm"
+        }
+      }
+    },
+    {
+      "id": "body-font",
+      "type": "font",
+      "target": "body",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "body-size",
+      "type": "size",
+      "target": "body",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "body-line-spacing",
+      "type": "line_spacing",
+      "target": "body",
+      "expected": {
+        "line_spacing": "1.5"
+      }
+    },
+    {
+      "id": "body-first-line-indent",
+      "type": "paragraph_indent",
+      "target": "body",
+      "expected": {
+        "first_line_indent": "2字符"
+      }
+    },
+    {
+      "id": "body-alignment",
+      "type": "alignment",
+      "target": "body",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "title1-font",
+      "type": "font",
+      "target": "title1",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "title1-size",
+      "type": "size",
+      "target": "title1",
+      "expected": {
+        "size": "三号"
+      }
+    },
+    {
+      "id": "title1-alignment",
+      "type": "alignment",
+      "target": "title1",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "title1-bold",
+      "type": "bold",
+      "target": "title1",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "title2-font",
+      "type": "font",
+      "target": "title2",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "title2-size",
+      "type": "size",
+      "target": "title2",
+      "expected": {
+        "size": "四号"
+      }
+    },
+    {
+      "id": "title2-alignment",
+      "type": "alignment",
+      "target": "title2",
+      "expected": {
+        "alignment": "left"
+      }
+    },
+    {
+      "id": "title2-bold",
+      "type": "bold",
+      "target": "title2",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "heading-numbering",
+      "type": "heading_numbering",
+      "target": "all",
+      "expected": {}
+    },
+    {
+      "id": "toc-consistency",
+      "type": "toc_consistency",
+      "target": "all",
+      "expected": {}
+    },
+    {
+      "id": "reference-baseline",
+      "type": "reference_baseline",
+      "target": "all",
+      "expected": {}
+    }
   ]
 }
