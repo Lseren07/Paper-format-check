@@ -4,7 +4,14 @@
 header { margin-bottom: 28px; } .eyebrow { color: #368b7d; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; }
 h1 { margin: 8px 0; font-size: clamp(28px, 6vw, 44px); } h2 { margin: 0 0 8px; font-size: 22px; } p { line-height: 1.6; }
 .muted, header p { color: #64747c; } .panel { padding: 28px; background: white; border: 1px solid #dce6e6; border-radius: 8px; box-shadow: 0 12px 30px #17334a12; }
-.dropzone { display: grid; gap: 8px; margin: 24px 0 16px; padding: 40px 20px; text-align: center; border: 1px dashed #76b5aa; border-radius: 6px; background: #f4fbfa; cursor: pointer; }
+.dropzone { display: grid; gap: 8px; margin: 24px 0 16px; padding: 40px 20px; text-align: center; border: 1px dashed #76b5aa; border-radius: 6px; background: #f4fbfa; cursor: pointer; position: relative; }
 .dropzone input { position: absolute; width: 1px; height: 1px; opacity: 0; } .dropzone span { color: #64747c; font-size: 14px; }
 button { width: 100%; min-height: 44px; border: 0; border-radius: 5px; background: #17334a; color: white; font-weight: 700; cursor: pointer; } button:disabled { background: #aebbc0; cursor: not-allowed; }
 .status { color: #368b7d; font-weight: 700; } .error { color: #b74742; } .result { display: grid; gap: 8px; margin-top: 20px; padding: 16px; background: #f4fbfa; border-left: 3px solid #368b7d; } code { overflow-wrap: anywhere; }
+.error-list { display: grid; gap: 12px; margin: 20px 0; padding: 0; list-style: none; }
+.error-card { padding: 16px; background: #fff7f6; border: 1px solid #f0d7d5; border-left: 3px solid #b74742; border-radius: 6px; }
+.error-card h3 { margin: 0 0 12px; font-size: 16px; }
+.error-card dl { display: grid; gap: 8px; margin: 0; }
+.error-card div { display: grid; gap: 2px; }
+.error-card dt { color: #64747c; font-size: 13px; }
+.error-card dd { margin: 0; overflow-wrap: anywhere; }

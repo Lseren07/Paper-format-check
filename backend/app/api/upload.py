@@ -7,6 +7,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from ..services.task_store import TaskRecord, store
+
 # 每个 router 是"一组"接口。prefix 先拼 /upload，main.py 再统一拼版本号 /api/v1
 router = APIRouter(prefix="/paper/upload", tags=["upload"])
 
@@ -70,6 +72,12 @@ async def upload_paper(file: UploadFile = File(...)) -> dict:
         target.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=f"文件不是有效的 {suffix} 文档")
 
+    store.put(TaskRecord(
+        task_id=task_id,
+        filename=file.filename or target.name,
+        size=size,
+        status="uploaded",
+    ))
     return {
         "code": 200,
         "message": "upload succeeded",
