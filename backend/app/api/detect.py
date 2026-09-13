@@ -38,14 +38,19 @@ def start_detect(payload: DetectStartRequest) -> dict:
 
     task.status = "detecting"
     task.progress = 50
+    # 清除上一次成功检测的缓存，避免本次解析失败时分析接口返回过期文档。
+    task.document = None
+    task.errors = []
     try:
-        task.errors = run_detection(path, document_id=payload.task_id, source_filename=task.filename)
+        task.document, task.errors = run_detection(path, document_id=payload.task_id, source_filename=task.filename)
     except DocumentParseError:
         task.status = "failed"
         task.progress = 100
         task.message = "文档解析失败"
         task.errors = []
         return {"code": 200, "message": "检测失败", "data": {"task_id": payload.task_id, "status": "failed"}}
+    finally:
+        path.unlink(missing_ok=True)
 
     task.status = "completed"
     task.progress = 100

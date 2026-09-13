@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from ..models.contracts import ErrorItem
+from ..models.contracts import Document, ErrorItem
 
 
 @dataclass
@@ -13,6 +13,7 @@ class TaskRecord:
     status: str = "uploaded"
     progress: int = 0
     errors: list[ErrorItem] = field(default_factory=list)
+    document: Document | None = None
     message: str = ""
 
 

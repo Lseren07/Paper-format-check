@@ -87,3 +87,48 @@ def test_upload_then_detect_returns_font_errors(tmp_path, monkeypatch) -> None:
     assert font_error["location"] == "第二章 系统设计"
     assert font_error["error_id"]
 
+
+def test_completed_task_exposes_parsed_document_for_analysis(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    client = TestClient(app)
+    task_id = upload_sample(client, make_mismatched_docx(), "thesis.docx")
+
+    assert client.post("/api/v1/detect/start", json={"task_id": task_id}).status_code == 200
+    response = client.get(f"/api/v1/document/analysis/{task_id}")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["task_id"] == task_id
+    assert data["filename"] == "thesis.docx"
+    assert data["status"] == "completed"
+    assert data["document"]["document_id"] == task_id
+    assert data["document"]["source_filename"] == "thesis.docx"
+    assert data["document"]["paragraphs"]
+
+
+def test_document_analysis_unknown_task_returns_404(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    response = TestClient(app).get("/api/v1/document/analysis/Tmissing")
+    assert response.status_code == 404
+
+
+def test_document_analysis_before_start_returns_409(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    client = TestClient(app)
+    task_id = upload_sample(client, make_mismatched_docx())
+    response = client.get(f"/api/v1/document/analysis/{task_id}")
+    assert response.status_code == 409
+
+
+def test_detection_cleans_uploaded_docx(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    client = TestClient(app)
+    task_id = upload_sample(client, make_mismatched_docx())
+    uploaded_path = tmp_path / f"{task_id}.docx"
+    assert uploaded_path.exists()
+
+    response = client.post("/api/v1/detect/start", json={"task_id": task_id})
+
+    assert response.status_code == 200
+    assert not uploaded_path.exists()
+
