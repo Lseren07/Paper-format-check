@@ -1,165 +1,33 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
-type ErrorItem = {
-  error_id: string;
-  type: string;
-  location: string;
-  content: string;
-  current: string;
-  expected: string;
-};
+type ErrorItem = { error_id: string; type: string; location: string; content: string; current: string; expected: string };
+type DetectResult = { task_id: string; filename: string; status: string; total_error: number; errors: ErrorItem[] };
+type DocumentAnalysis = { schema_version: string; document_id: string; source_filename: string; metadata: Record<string, unknown>; sections: Array<Record<string, unknown>>; paragraphs: Array<Record<string, unknown>>; tables: Array<Record<string, unknown>>; headers: Array<Record<string, unknown>>; footers: Array<Record<string, unknown>>; pages: Array<Record<string, unknown>> };
 
-type DetectResult = {
-  task_id: string;
-  filename: string;
-  status: string;
-  total_error: number;
-  errors: ErrorItem[];
-};
-
-const ERROR_TYPE_LABELS: Record<string, string> = {
-  font_error: "字体错误",
-  size_error: "字号错误",
-  bold_error: "加粗错误",
-  alignment_error: "对齐错误",
-  line_spacing_error: "行距错误",
-  paragraph_indent_error: "缩进错误",
-  heading_numbering_error: "标题编号错误",
-  toc_consistency_error: "目录一致性错误",
-  table_figure_format_error: "图表格式错误",
-  reference_baseline_error: "参考文献格式错误",
-  page_margin_error: "页边距错误",
-};
-
-function errorTypeLabel(type: string): string {
-  return ERROR_TYPE_LABELS[type] ?? type;
-}
+const ERROR_TYPE_LABELS: Record<string, string> = { font_error: "字体错误", size_error: "字号错误", bold_error: "加粗错误", alignment_error: "对齐错误", line_spacing_error: "行距错误", paragraph_indent_error: "缩进错误", heading_numbering_error: "标题编号错误", toc_consistency_error: "目录一致性错误", table_figure_format_error: "图表格式错误", reference_baseline_error: "参考文献格式错误", page_margin_error: "页边距错误" };
+function errorTypeLabel(type: string) { return ERROR_TYPE_LABELS[type] ?? type; }
+function value(data: Record<string, unknown>, ...keys: string[]) { const found = keys.find((key) => data[key] !== undefined && data[key] !== null && data[key] !== ""); return found ? String(data[found]) : "未提供"; }
 
 export default function App() {
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState("待检测");
-  const [message, setMessage] = useState("");
-  const [result, setResult] = useState<DetectResult | null>(null);
-  const [inputKey, setInputKey] = useState(0);
-
+  const [file, setFile] = useState<File | null>(null); const [status, setStatus] = useState("待检测"); const [message, setMessage] = useState(""); const [result, setResult] = useState<DetectResult | null>(null); const [analysis, setAnalysis] = useState<DocumentAnalysis | null>(null); const [analysisError, setAnalysisError] = useState(""); const [activeTab, setActiveTab] = useState<"result" | "analysis">("result"); const [inputKey, setInputKey] = useState(0);
   async function startDetection() {
-    if (!file) return;
-    setStatus("检测中");
-    setMessage("");
-    const formData = new FormData();
-    formData.append("file", file);
+    if (!file) return; setStatus("检测中"); setMessage(""); setAnalysisError(""); const formData = new FormData(); formData.append("file", file);
     try {
-      const uploadResponse = await fetch("/api/v1/paper/upload", { method: "POST", body: formData });
-      const uploadBody = await uploadResponse.json();
-      if (!uploadResponse.ok) {
-        throw new Error(uploadBody.detail ?? "上传失败");
-      }
-      const taskId = uploadBody.data.task_id as string;
-      const startResponse = await fetch("/api/v1/detect/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task_id: taskId }),
-      });
-      const startBody = await startResponse.json();
-      if (!startResponse.ok) {
-        throw new Error(startBody.detail ?? "检测失败");
-      }
-      if (startBody.data?.status === "failed") {
-        throw new Error(startBody.message ?? "检测失败");
-      }
-      const resultResponse = await fetch(`/api/v1/detect/result/${taskId}`);
-      const resultBody = await resultResponse.json();
-      if (!resultResponse.ok) {
-        throw new Error(resultBody.detail ?? "获取检测结果失败");
-      }
-      setResult(resultBody.data);
+      const uploadResponse = await fetch("/api/v1/paper/upload", { method: "POST", body: formData }); const uploadBody = await uploadResponse.json(); if (!uploadResponse.ok) throw new Error(uploadBody.detail ?? "上传失败"); const taskId = uploadBody.data.task_id as string;
+      const startResponse = await fetch("/api/v1/detect/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ task_id: taskId }) }); const startBody = await startResponse.json(); if (!startResponse.ok || startBody.data?.status === "failed") throw new Error(startBody.detail ?? startBody.message ?? "检测失败");
+      const resultResponse = await fetch(`/api/v1/detect/result/${taskId}`); const resultBody = await resultResponse.json(); if (!resultResponse.ok) throw new Error(resultBody.detail ?? "获取检测结果失败"); setResult(resultBody.data);
+      try { const analysisResponse = await fetch(`/api/v1/document/analysis/${taskId}`); const analysisBody = await analysisResponse.json(); if (!analysisResponse.ok) throw new Error(analysisBody.detail ?? "获取格式分析失败"); setAnalysis(analysisBody.data.document); } catch (error) { setAnalysisError(error instanceof Error ? error.message : "获取格式分析失败"); }
       setStatus("检测完成");
-    } catch (error) {
-      setStatus("检测失败");
-      setMessage(error instanceof Error ? error.message : "无法连接后端服务");
-    }
+    } catch (error) { setStatus("检测失败"); setMessage(error instanceof Error ? error.message : "无法连接后端服务"); }
   }
+  function backToUpload() { setFile(null); setStatus("待检测"); setMessage(""); setResult(null); setAnalysis(null); setAnalysisError(""); setActiveTab("result"); setInputKey((value) => value + 1); }
+  const shell = (content: React.ReactNode) => <div className="app"><aside className="sidebar"><div className="brand"><div className="brand-mark">格</div><div><strong>格检</strong><small>论文格式检查工作台</small></div></div><p className="nav-title">工作区</p><nav className="nav"><button className="active" type="button"><span className="nav-icon">＋</span><span>新建检查</span></button><button type="button"><span className="nav-icon">▣</span><span>检测结果</span></button><button type="button"><span className="nav-icon">▤</span><span>格式分析</span></button><button type="button"><span className="nav-icon">◇</span><span>检查规范</span></button></nav><div className="sidebar-foot"><div className="user"><span className="avatar">王</span><div>王老师<small>本地工作区</small></div></div></div></aside><div className="main"><header className="topbar"><div className="crumb">论文检查　/　<b>{result ? "检测结果" : "新建检查"}</b></div><div className="top-right"><span><i className="local-dot" />本地模式 · 文件不上传</span><button className="outline" type="button" onClick={backToUpload}>＋ 新建任务</button></div></header><div className="page">{content}</div></div></div>;
+  if (result) return shell(<><div className="page-head"><div><div className="kicker">REVIEW RESULT</div><h1>检测结果</h1><p>{result.filename} 已完成格式检测。</p></div></div><section className="panel panel-pad"><div className="tabs" role="tablist" aria-label="检测结果视图"><button className={activeTab === "result" ? "tab active" : "tab"} role="tab" aria-selected={activeTab === "result"} onClick={() => setActiveTab("result")}>问题明细 <span>{result.total_error}</span></button><button className={activeTab === "analysis" ? "tab active" : "tab"} role="tab" aria-selected={activeTab === "analysis"} onClick={() => setActiveTab("analysis")}>格式分析</button></div>{activeTab === "result" ? <><h2>共 {result.total_error} 个格式问题</h2>{result.errors.length === 0 ? <p className="muted">未发现格式问题。</p> : <ul className="error-list">{result.errors.map((error) => <li key={error.error_id} className="error-card"><h3>{errorTypeLabel(error.type)}</h3><dl><div><dt>位置</dt><dd>{error.location}</dd></div><div><dt>文本</dt><dd>{error.content || "（无文本）"}</dd></div><div><dt>当前格式</dt><dd>{error.current}</dd></div><div><dt>规范要求</dt><dd>{error.expected}</dd></div></dl></li>)}</ul>}</> : <AnalysisView analysis={analysis} error={analysisError} />}<button type="button" onClick={backToUpload}>返回上传</button></section></>);
+  return shell(<><div className="page-head"><div><div className="kicker">NEW REVIEW</div><h1>开始一次新的格式检查</h1><p>选择论文类别，上传完整材料，按学校规范生成检查结果。</p></div><span className="date">2026 年 9 月 13 日</span></div><div className="layout"><section className="panel panel-pad"><div className="panel-head"><h2>准备检查材料</h2><span>论文 + 检查规范文件</span></div><label className="upload"><div className="upload-icon">DOC</div><h3>{file ? file.name : "拖拽论文文件到这里"}</h3><p>{file ? `${(file.size / 1024 / 1024).toFixed(2)} MB · 已选择` : "Word 文档只在本机临时解析"}</p><span className="pick">选择本地文件</span><input key={inputKey} type="file" accept=".docx" aria-label="选择 DOCX 文件" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label><div className="form-grid"><div className="field"><label htmlFor="paper-type">论文类别</label><select id="paper-type"><option>工科 / 艺术设计类设计型题目</option><option>理科类论文</option></select></div><div className="field"><label htmlFor="paper-scope">检查范围</label><select id="paper-scope"><option>完整论文材料</option><option>仅正文排版</option></select></div></div><div className="notice"><span>ⓘ</span><span>检查过程只读原文件，不会修改或覆盖论文。未下载的报告将在关闭页面后清理。</span></div><button className="start" type="button" disabled={!file || status === "检测中"} onClick={startDetection}>开始格式检查　→</button><p className={`status ${status === "检测失败" ? "error" : ""}`}>{status}</p>{message && <p className="error">{message}</p>}</section><aside className="panel panel-pad"><div className="panel-head"><h2>检查流程</h2><span>V1.0</span></div><div className="steps"><div className="step done"><div className="step-mark">✓</div><div><strong>上传文件</strong><small>校验 Word 文件类型与大小</small></div></div><div className="step current"><div className="step-mark">2</div><div><strong>解析文档</strong><small>提取章节、样式、图表和页眉页脚</small></div></div><div className="step"><div className="step-mark">3</div><div><strong>执行规则检查</strong><small>对照学校规范逐项比对格式</small></div></div><div className="step"><div className="step-mark">4</div><div><strong>查看结果并导出</strong><small>定位问题，生成 PDF 检测报告</small></div></div></div><div className="rule-card"><p>当前规范库</p><div className="rule-line"><span>电子科技大学成都学院</span><b>本科论文</b></div><div className="rule-line"><span>自动判断项目</span><b>153 项</b></div></div></aside></div><section className="panel recent section-gap"><div className="panel-head"><h2>最近的检查任务</h2><span>本地临时记录</span></div><div className="table-wrap"><table className="table"><thead><tr><th>论文文件</th><th>类别</th><th>问题数</th><th>状态</th><th>时间</th></tr></thead><tbody><tr><td><b>示例论文.docx</b></td><td>工科设计型</td><td className="error-text">12 个问题</td><td className="pass">已完成</td><td>今天 16:42</td></tr></tbody></table></div></section></>);
+}
 
-  function backToUpload() {
-    setFile(null);
-    setStatus("待检测");
-    setMessage("");
-    setResult(null);
-    setInputKey((value) => value + 1);
-  }
-
-  if (result) {
-    return (
-      <main className="shell">
-        <header>
-          <span className="eyebrow">PAPER CHECKER</span>
-          <h1>检测结果</h1>
-          <p>{result.filename} 已完成格式检测。</p>
-        </header>
-        <section className="panel">
-          <h2>共 {result.total_error} 个格式问题</h2>
-          {result.errors.length === 0 ? (
-            <p className="muted">未发现格式问题。</p>
-          ) : (
-            <ul className="error-list">
-              {result.errors.map((error) => (
-                <li key={error.error_id} className="error-card">
-                  <h3>{errorTypeLabel(error.type)}</h3>
-                  <dl>
-                    <div>
-                      <dt>位置</dt>
-                      <dd>{error.location}</dd>
-                    </div>
-                    <div>
-                      <dt>文本</dt>
-                      <dd>{error.content || "（无文本）"}</dd>
-                    </div>
-                    <div>
-                      <dt>当前格式</dt>
-                      <dd>{error.current}</dd>
-                    </div>
-                    <div>
-                      <dt>规范要求</dt>
-                      <dd>{error.expected}</dd>
-                    </div>
-                  </dl>
-                </li>
-              ))}
-            </ul>
-          )}
-          <button type="button" onClick={backToUpload}>返回上传</button>
-        </section>
-      </main>
-    );
-  }
-
-  return (
-    <main className="shell">
-      <header>
-        <span className="eyebrow">PAPER CHECKER</span>
-        <h1>论文格式检测系统</h1>
-        <p>上传 Word 论文后，系统会按学校规范检查字体、字号、段落与页面格式。</p>
-      </header>
-      <section className="panel">
-        <h2>上传论文</h2>
-        <p className="muted">当前版本接受有效的 DOCX 文件，单文件最大 50 MB。</p>
-        <label className="dropzone">
-          <input
-            key={inputKey}
-            type="file"
-            accept=".docx"
-            aria-label="选择 DOCX 文件"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-          <strong>{file ? file.name : "选择 DOCX 文件"}</strong>
-          <span>{file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "文件只保存在本地 uploads 目录"}</span>
-        </label>
-        <button type="button" disabled={!file || status === "检测中"} onClick={startDetection}>
-          开始检测
-        </button>
-        <p className={`status ${status === "检测失败" ? "error" : ""}`}>{status}</p>
-        {message && <p className="error">{message}</p>}
-      </section>
-    </main>
-  );
+function AnalysisView({ analysis, error }: { analysis: DocumentAnalysis | null; error: string }) {
+  if (error) return <div className="analysis-state error" role="alert">{error}</div>; if (!analysis) return <div className="analysis-state muted">暂无格式分析数据。</div>;
+  const metadata = Object.entries(analysis.metadata);
+  return <div className="analysis-view"><div className="analysis-summary"><h2>文档格式分析</h2><p className="muted">结构版本 {analysis.schema_version} · 文档编号 {analysis.document_id}</p><div className="stats"><div><strong>{analysis.sections.length}</strong><span>章节</span></div><div><strong>{analysis.paragraphs.length}</strong><span>段落</span></div><div><strong>{analysis.tables.length}</strong><span>表格</span></div><div><strong>{analysis.pages.length}</strong><span>页面</span></div></div></div>{metadata.length > 0 && <section><h3>文档信息</h3><dl className="metadata">{metadata.map(([key, item]) => <div key={key}><dt>{key}</dt><dd>{String(item)}</dd></div>)}</dl></section>}<section><h3>章节</h3>{analysis.sections.length === 0 ? <p className="muted">未解析到章节。</p> : <ul className="compact-list">{analysis.sections.map((section, index) => <li key={index}><strong>{value(section, "title", "text", "name")}</strong><span>层级 {value(section, "level", "heading_level")}</span></li>)}</ul>}</section><section><h3>表格</h3>{analysis.tables.length === 0 ? <p className="muted">未解析到表格。</p> : <ul className="compact-list">{analysis.tables.map((table, index) => <li key={index}><strong>表格 {index + 1}</strong><span>{value(table, "rows")} × {value(table, "columns", "cols")}</span></li>)}</ul>}</section></div>;
 }
