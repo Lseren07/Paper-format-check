@@ -53,6 +53,8 @@ def test_error_contract_uses_current_and_expected_fields() -> None:
         "content": "这是错误文本",
         "current": "黑体 小四",
         "expected": "宋体 小四",
+        "rule_id": None,
+        "basis": None,
     }
 
 

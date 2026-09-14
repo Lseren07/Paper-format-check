@@ -39,7 +39,8 @@ def test_default_rule_file_keeps_chinese_expected_values() -> None:
     assert expected["body-size"]["size"] == "小四"
     assert expected["body-first-line-indent"]["first_line_indent"] == "2字符"
     assert expected["title1-font"]["font"] == "黑体"
-    assert expected["title1-size"]["size"] == "三号"
+    assert expected["title1-size"]["size"] == "小三"
+    assert expected["title3-size"]["size"] == "小四"
     assert expected["title2-font"]["font"] == "黑体"
     assert expected["title2-size"]["size"] == "四号"
 

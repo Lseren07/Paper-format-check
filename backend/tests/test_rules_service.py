@@ -19,7 +19,7 @@ def test_default_rules_enable_heading_toc_reference_and_page_margin_checks() -> 
     from backend.app.rules.loader import load_rules
 
     rule_types = {rule.type for rule in load_rules(Path("rules/default.json")).checks}
-    assert {"heading_numbering", "toc_consistency", "reference_baseline", "page_margin"}.issubset(rule_types)
+    assert {"heading_numbering", "toc_consistency", "reference_baseline", "page_margin", "required_sections", "caption_format", "keyword_format", "header_text", "paragraph_spacing"}.issubset(rule_types)
     assert "table_figure_format" not in rule_types
 
 
@@ -38,7 +38,7 @@ def test_default_rules_accept_normalized_body_size_and_indent() -> None:
     document = Document(document_id="D1", source_filename="x.docx", paragraphs=[{
         "paragraph_id": "p-0001", "text": "正文", "heading": {"level": None},
         "style": {"name": "Normal"},
-        "format": {"alignment": "justify", "line_spacing": 1.5, "first_line_indent_pt": 24},
+        "format": {"alignment": "justify", "line_spacing": 20, "first_line_indent_pt": 24},
         "runs": [{"text": "正文", "font": {"effective": "宋体"}, "size_pt": 12, "bold": None}],
     }])
     errors = check_document(document, Path("rules/default.json"))

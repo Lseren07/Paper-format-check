@@ -44,11 +44,23 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
     if match:
         heading_level = int(match.group(1))
     ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
-    first_line_chars = ind.get("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}firstLineChars") if ind is not None else None
+    ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    first_line_chars = ind.get(f"{ns}firstLineChars") if ind is not None else None
+    hanging_chars = ind.get(f"{ns}hangingChars") if ind is not None else None
+    hanging_twips = ind.get(f"{ns}hanging") if ind is not None else None
+    first_pt = pf.first_line_indent.pt if pf.first_line_indent else None
+    hanging_pt = None
+    if first_pt is not None and first_pt < 0:
+        hanging_pt = abs(first_pt)
+        first_pt = None
+    if hanging_twips:
+        hanging_pt = int(hanging_twips) / 20
+    spacing = pf.line_spacing
+    spacing_pt = float(spacing.pt) if getattr(spacing, "pt", None) is not None else (None if spacing is None else float(spacing))
     return {
         "paragraph_id": f"p-{index:04d}", "index": index - 1, "text": paragraph.text,
         "style": {"id": style_id, "name": paragraph.style.name, "based_on": []},
-        "format": {"alignment": alignment, "line_spacing": pf.line_spacing, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": pf.first_line_indent.pt if pf.first_line_indent else None, "first_line_indent_chars": int(first_line_chars) / 100 if first_line_chars else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
+        "format": {"alignment": alignment, "line_spacing": spacing_pt, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": first_pt, "first_line_indent_chars": int(first_line_chars) / 100 if first_line_chars else None, "hanging_indent_pt": hanging_pt, "hanging_indent_chars": int(hanging_chars) / 100 if hanging_chars else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
         "runs": runs, "drawings": _drawings(paragraph, relationships),
         "heading": {"level": heading_level, "source": "style" if heading_level else None},
         "numbering": None, "location": location,
@@ -129,12 +141,15 @@ def parse_docx(
                     paragraph_ids.append(paragraph_data["paragraph_id"])
                 cells.append({"row_index": ri, "column_index": ci, "text": cell.text, "paragraph_ids": paragraph_ids})
         tables.append({"table_index": ti, "rows": len(table.rows), "columns": len(table.columns), "cells": cells})
+    def _hf(obj, si, variant):
+        content = "\n".join(p.text for p in obj.paragraphs)
+        fields = re.findall(r"w:instrText[^>]*>\s*([^<]+)", "".join(p._p.xml for p in obj.paragraphs))
+        return {"section_index": si, "variant": variant, "text": content, "fields": [{"type": f.strip(), "display_text": content} for f in fields]}
+
     headers, footers = [], []
     for si, section in enumerate(docx.sections):
-        for kind, obj, target in (("default", section.header, headers), ("default", section.footer, footers)):
-            text = "\n".join(p.text for p in obj.paragraphs)
-            fields = re.findall(r"w:instrText[^>]*>\s*([^<]+)", "".join(p._p.xml for p in obj.paragraphs))
-            target.append({"section_index": si, "variant": kind, "text": text, "fields": [{"type": f.strip(), "display_text": text} for f in fields]})
+        headers.extend([_hf(section.header, si, "odd"), _hf(section.even_page_header, si, "even")])
+        footers.extend([_hf(section.footer, si, "odd"), _hf(section.even_page_footer, si, "even")])
     toc = [{"paragraph_id": p["paragraph_id"], "text": p["text"], "level": int(re.search(r"([1-9])", p["style"]["name"]).group(1)) if re.search(r"([1-9])", p["style"]["name"]) else None} for p in paragraphs if p["style"]["name"].lower().startswith("toc")]
     return Document(
         document_id=document_id or ("D" + uuid.uuid4().hex[:12]),
@@ -144,5 +159,5 @@ def parse_docx(
         tables=tables,
         headers=headers,
         footers=footers,
-        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}} for i, section in enumerate(docx.sections)],
+        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}, "header_distance_pt": section.header_distance.pt if section.header_distance else None, "footer_distance_pt": section.footer_distance.pt if section.footer_distance else None} for i, section in enumerate(docx.sections)],
     )

@@ -10,18 +10,32 @@ BODY_TEXT = "正文"
 MISMATCH_FONT = "黑体"
 
 
+def _plain(paragraph_id: str, text: str) -> dict:
+    return {
+        "paragraph_id": paragraph_id, "text": text, "heading": {"level": None},
+        "style": {"name": "Normal"}, "format": {}, "runs": [],
+    }
+
+
 def valid_document(font: str) -> Document:
-    return Document(document_id="D1", source_filename="x.docx", paragraphs=[{
-        "paragraph_id": "p-0001", "text": BODY_TEXT, "heading": {"level": None},
-        "style": {"name": "Normal"}, "format": {},
-        "runs": [{"text": BODY_TEXT, "font": {"effective": font}, "size_pt": None, "bold": None}],
-    }])
+    return Document(document_id="D1", source_filename="x.docx", paragraphs=[
+        {
+            "paragraph_id": "p-0001", "text": BODY_TEXT, "heading": {"level": None},
+            "style": {"name": "Normal"}, "format": {},
+            "runs": [{"text": BODY_TEXT, "font": {"effective": font}, "size_pt": None, "bold": None}],
+        },
+        _plain("p-0002", "摘要"),
+        _plain("p-0003", "关键词：排队；系统；仿真"),
+        _plain("p-0004", "目录"),
+        _plain("p-0005", "参考文献"),
+        _plain("p-0006", "致谢"),
+    ])
 
 
 def test_load_school_rule_set() -> None:
     rules = load_rules(RULE_PATH)
 
-    assert rules.name == "default-paper-format-rules"
+    assert rules.name == "电子科技大学成都学院本科毕业论文格式规范"
     assert any(rule.id == "body-font" for rule in rules.checks)
 
 

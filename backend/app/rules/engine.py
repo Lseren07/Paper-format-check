@@ -4,9 +4,11 @@ from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule, RuleSet
 from .detectors import (
     detect_alignment, detect_bold, detect_font, detect_heading_numbering,
-    detect_line_spacing, detect_paragraph_indent, detect_reference_baseline,
-    detect_size, detect_table_figure_format, detect_toc_consistency, detect_page_margin,
+    detect_line_spacing, detect_paragraph_indent, detect_paragraph_spacing,
+    detect_reference_baseline, detect_size, detect_table_figure_format,
+    detect_toc_consistency, detect_page_margin,
 )
+from .spec_detectors import detect_caption_format, detect_header_text, detect_keyword_format, detect_required_sections
 
 Detector = Callable[[Document, CheckRule], list[ErrorItem]]
 DETECTORS: dict[str, Detector] = {
@@ -21,6 +23,11 @@ DETECTORS: dict[str, Detector] = {
     "table_figure_format": detect_table_figure_format,
     "reference_baseline": detect_reference_baseline,
     "page_margin": detect_page_margin,
+    "paragraph_spacing": detect_paragraph_spacing,
+    "required_sections": detect_required_sections,
+    "keyword_format": detect_keyword_format,
+    "caption_format": detect_caption_format,
+    "header_text": detect_header_text,
 }
 
 

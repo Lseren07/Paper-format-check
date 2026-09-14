@@ -1,7 +1,6 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema_version": "1.0",
-  "name": "default-paper-format-rules",
+  "name": "电子科技大学成都学院本科毕业论文格式规范",
   "checks": [
     {
       "id": "page-margin",
@@ -9,10 +8,16 @@
       "target": "all",
       "expected": {
         "margin": {
-          "top": "2.5cm",
-          "right": "2.5cm",
-          "bottom": "2.5cm",
-          "left": "2.5cm"
+          "top": "3.5cm",
+          "right": "3.0cm",
+          "bottom": "3.5cm",
+          "left": "3.0cm"
+        },
+        "header": "2.75cm",
+        "footer": "1.75cm",
+        "page": {
+          "width_cm": 21.0,
+          "height_cm": 29.7
         }
       }
     },
@@ -33,11 +38,28 @@
       }
     },
     {
+      "id": "body-alignment",
+      "type": "alignment",
+      "target": "body",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "body-spacing",
+      "type": "paragraph_spacing",
+      "target": "body",
+      "expected": {
+        "space_before_pt": 6,
+        "space_after_pt": 0
+      }
+    },
+    {
       "id": "body-line-spacing",
       "type": "line_spacing",
       "target": "body",
       "expected": {
-        "line_spacing": "1.5"
+        "line_spacing": 20
       }
     },
     {
@@ -46,14 +68,6 @@
       "target": "body",
       "expected": {
         "first_line_indent": "2字符"
-      }
-    },
-    {
-      "id": "body-alignment",
-      "type": "alignment",
-      "target": "body",
-      "expected": {
-        "alignment": "justify"
       }
     },
     {
@@ -69,7 +83,7 @@
       "type": "size",
       "target": "title1",
       "expected": {
-        "size": "三号"
+        "size": "小三"
       }
     },
     {
@@ -86,6 +100,15 @@
       "target": "title1",
       "expected": {
         "bold": true
+      }
+    },
+    {
+      "id": "title1-spacing",
+      "type": "paragraph_spacing",
+      "target": "title1",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
       }
     },
     {
@@ -118,6 +141,625 @@
       "target": "title2",
       "expected": {
         "bold": true
+      }
+    },
+    {
+      "id": "title2-spacing",
+      "type": "paragraph_spacing",
+      "target": "title2",
+      "expected": {
+        "space_before_pt": 18,
+        "space_after_pt": 18
+      }
+    },
+    {
+      "id": "title3-font",
+      "type": "font",
+      "target": "title3",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "title3-size",
+      "type": "size",
+      "target": "title3",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "title3-alignment",
+      "type": "alignment",
+      "target": "title3",
+      "expected": {
+        "alignment": "left"
+      }
+    },
+    {
+      "id": "title3-bold",
+      "type": "bold",
+      "target": "title3",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "title3-spacing",
+      "type": "paragraph_spacing",
+      "target": "title3",
+      "expected": {
+        "space_before_pt": 12,
+        "space_after_pt": 12
+      }
+    },
+    {
+      "id": "title4-font",
+      "type": "font",
+      "target": "title4",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "title4-size",
+      "type": "size",
+      "target": "title4",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "title4-alignment",
+      "type": "alignment",
+      "target": "title4",
+      "expected": {
+        "alignment": "left"
+      }
+    },
+    {
+      "id": "title4-bold",
+      "type": "bold",
+      "target": "title4",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "title4-spacing",
+      "type": "paragraph_spacing",
+      "target": "title4",
+      "expected": {
+        "space_before_pt": 6,
+        "space_after_pt": 6
+      }
+    },
+    {
+      "id": "abstract-title-font",
+      "type": "font",
+      "target": "abstract-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "abstract-title-size",
+      "type": "size",
+      "target": "abstract-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "abstract-title-alignment",
+      "type": "alignment",
+      "target": "abstract-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "abstract-title-bold",
+      "type": "bold",
+      "target": "abstract-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "abstract-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "abstract-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "references-title-font",
+      "type": "font",
+      "target": "references-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "references-title-size",
+      "type": "size",
+      "target": "references-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "references-title-alignment",
+      "type": "alignment",
+      "target": "references-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "references-title-bold",
+      "type": "bold",
+      "target": "references-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "references-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "references-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "thanks-title-font",
+      "type": "font",
+      "target": "thanks-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "thanks-title-size",
+      "type": "size",
+      "target": "thanks-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "thanks-title-alignment",
+      "type": "alignment",
+      "target": "thanks-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "thanks-title-bold",
+      "type": "bold",
+      "target": "thanks-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "thanks-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "thanks-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "appendix-title-font",
+      "type": "font",
+      "target": "appendix-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "appendix-title-size",
+      "type": "size",
+      "target": "appendix-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "appendix-title-alignment",
+      "type": "alignment",
+      "target": "appendix-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "appendix-title-bold",
+      "type": "bold",
+      "target": "appendix-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "appendix-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "appendix-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "conclusion-title-font",
+      "type": "font",
+      "target": "conclusion-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "conclusion-title-size",
+      "type": "size",
+      "target": "conclusion-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "conclusion-title-alignment",
+      "type": "alignment",
+      "target": "conclusion-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "conclusion-title-bold",
+      "type": "bold",
+      "target": "conclusion-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "conclusion-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "conclusion-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "abstract-en-title-font",
+      "type": "font",
+      "target": "abstract-en-title",
+      "expected": {
+        "font": "Times New Roman"
+      }
+    },
+    {
+      "id": "abstract-en-title-size",
+      "type": "size",
+      "target": "abstract-en-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "abstract-en-title-alignment",
+      "type": "alignment",
+      "target": "abstract-en-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "abstract-en-title-bold",
+      "type": "bold",
+      "target": "abstract-en-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "abstract-en-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "abstract-en-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "toc-title-font",
+      "type": "font",
+      "target": "toc-title",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "toc-title-size",
+      "type": "size",
+      "target": "toc-title",
+      "expected": {
+        "size": "小二"
+      }
+    },
+    {
+      "id": "toc-title-alignment",
+      "type": "alignment",
+      "target": "toc-title",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "toc-title-bold",
+      "type": "bold",
+      "target": "toc-title",
+      "expected": {
+        "bold": true
+      }
+    },
+    {
+      "id": "toc-title-spacing",
+      "type": "paragraph_spacing",
+      "target": "toc-title",
+      "expected": {
+        "space_before_pt": 30,
+        "space_after_pt": 30
+      }
+    },
+    {
+      "id": "abstract-en-font",
+      "type": "font",
+      "target": "abstract-en-body",
+      "expected": {
+        "font": "Times New Roman"
+      }
+    },
+    {
+      "id": "abstract-en-size",
+      "type": "size",
+      "target": "abstract-en-body",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "abstract-en-alignment",
+      "type": "alignment",
+      "target": "abstract-en-body",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "abstract-en-spacing",
+      "type": "paragraph_spacing",
+      "target": "abstract-en-body",
+      "expected": {
+        "space_before_pt": 6,
+        "space_after_pt": 0
+      }
+    },
+    {
+      "id": "abstract-en-line-spacing",
+      "type": "line_spacing",
+      "target": "abstract-en-body",
+      "expected": {
+        "line_spacing": 20
+      }
+    },
+    {
+      "id": "abstract-en-first-line-indent",
+      "type": "paragraph_indent",
+      "target": "abstract-en-body",
+      "expected": {
+        "first_line_indent": "1字符"
+      }
+    },
+    {
+      "id": "toc-body-font",
+      "type": "font",
+      "target": "toc-body",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "toc-body-size",
+      "type": "size",
+      "target": "toc-body",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "toc-body-alignment",
+      "type": "alignment",
+      "target": "toc-body",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "toc-body-line-spacing",
+      "type": "line_spacing",
+      "target": "toc-body",
+      "expected": {
+        "line_spacing": 20
+      }
+    },
+    {
+      "id": "references-font",
+      "type": "font",
+      "target": "references-entry",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "references-size",
+      "type": "size",
+      "target": "references-entry",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "references-alignment",
+      "type": "alignment",
+      "target": "references-entry",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "references-spacing",
+      "type": "paragraph_spacing",
+      "target": "references-entry",
+      "expected": {
+        "space_before_pt": 3,
+        "space_after_pt": 0
+      }
+    },
+    {
+      "id": "references-line-spacing",
+      "type": "line_spacing",
+      "target": "references-entry",
+      "expected": {
+        "line_spacing": 17
+      }
+    },
+    {
+      "id": "references-hanging-indent",
+      "type": "paragraph_indent",
+      "target": "references-entry",
+      "expected": {
+        "hanging_indent": "1字符"
+      }
+    },
+    {
+      "id": "keywords-font",
+      "type": "font",
+      "target": "keywords",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "keywords-size",
+      "type": "size",
+      "target": "keywords",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "keywords-en-font",
+      "type": "font",
+      "target": "keywords-en",
+      "expected": {
+        "font": "Times New Roman"
+      }
+    },
+    {
+      "id": "keywords-en-size",
+      "type": "size",
+      "target": "keywords-en",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "keywords-zh",
+      "type": "keyword_format",
+      "target": "keywords",
+      "expected": {
+        "pattern": "^关键词\\s*[：:]",
+        "min": 3,
+        "max": 8,
+        "required": true
+      }
+    },
+    {
+      "id": "keywords-en-format",
+      "type": "keyword_format",
+      "target": "keywords-en",
+      "expected": {
+        "pattern": "^Keywords\\s*[：:]",
+        "min": 3,
+        "max": 8,
+        "lowercase": true
+      }
+    },
+    {
+      "id": "caption-format",
+      "type": "caption_format",
+      "target": "caption",
+      "expected": {
+        "figure": {
+          "font": "宋体",
+          "size": "五号",
+          "alignment": "center"
+        },
+        "table": {
+          "font": "宋体",
+          "size": "五号",
+          "alignment": "center"
+        }
+      }
+    },
+    {
+      "id": "figure-caption-spacing",
+      "type": "paragraph_spacing",
+      "target": "figure-caption",
+      "expected": {
+        "space_before_pt": 6,
+        "space_after_pt": 12
+      }
+    },
+    {
+      "id": "table-caption-spacing",
+      "type": "paragraph_spacing",
+      "target": "table-caption",
+      "expected": {
+        "space_before_pt": 12,
+        "space_after_pt": 6
+      }
+    },
+    {
+      "id": "required-sections",
+      "type": "required_sections",
+      "target": "all",
+      "expected": {
+        "titles": [
+          "摘要",
+          "目录",
+          "参考文献",
+          "致谢"
+        ]
+      }
+    },
+    {
+      "id": "header-text",
+      "type": "header_text",
+      "target": "all",
+      "expected": {
+        "contains": "电子科技大学成都学院本科毕业论文",
+        "variant": "even"
       }
     },
     {

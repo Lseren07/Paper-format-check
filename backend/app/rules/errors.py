@@ -17,4 +17,12 @@ def make_error(rule: CheckRule, *, location: str, content: str, current: str, ex
         content=content,
         current=current,
         expected=expected,
+        rule_id=rule.id,
+        basis=_rule_basis(rule),
     )
+
+
+def _rule_basis(rule: CheckRule) -> str:
+    """Provide a compact, traceable explanation for a report or UI."""
+    expected = ", ".join(f"{key}={value}" for key, value in rule.expected.items())
+    return f"规则 {rule.id}：{expected}" if expected else f"规则 {rule.id}"

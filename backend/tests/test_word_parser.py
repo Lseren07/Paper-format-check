@@ -110,5 +110,7 @@ def test_parse_docx_extracts_page_margins_and_table_cell_paragraphs() -> None:
     parsed = parse_docx(BytesIO(stream.getvalue()))
     table_paragraph = next(paragraph for paragraph in parsed.paragraphs if paragraph["location"]["part"] == "table")
     assert parsed.sections[0]["margins_pt"]["top"] == 72
+    assert parsed.sections[0]["header_distance_pt"] is not None
+    assert parsed.sections[0]["footer_distance_pt"] is not None
     assert table_paragraph["text"] == "表格正文"
     assert table_paragraph["format"]["first_line_indent_chars"] == 2

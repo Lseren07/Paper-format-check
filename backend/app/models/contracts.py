@@ -27,3 +27,5 @@ class ErrorItem(BaseModel):
     content: str
     current: str
     expected: str
+    rule_id: str | None = None
+    basis: str | None = None

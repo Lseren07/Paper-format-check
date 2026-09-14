@@ -1,14 +1,40 @@
 # 规则库
 
-此目录用于保存由学校格式规范、相关表格和论文示范文档整理出的 JSON 规则。
+此目录保存由《电子科技大学成都学院毕业论文（设计）撰写格式规范》（附件1）、相关表格（附件2）和撰写示范（附件3）整理出的 JSON 规则。
 
-规则文件使用 `schema_version`、`name` 和 `checks`。每个检查项包含唯一 `id`、检测器 `type`、可选的 `target`、`expected` 期望值和可选的 `enabled` 开关。
+规则文件使用 `schema_version`、`name` 和 `checks`。每个检查项包含唯一 `id`、检测器 `type`、可选 `target`、`expected` 期望值和可选 `enabled` 开关。
 
-当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`。
+当前产品只加载一套规则：`default.json`。加载、校验和执行入口为 `backend.app.rules.loader.load_rules` 与 `backend.app.rules.service.check_document`。旧文件 `electronic-tech-cdu-v1.json` 仅作历史对照，不再作为运行时规则。
 
-规则引擎只依据解析后的内存 `Document` 运行。字号规则可使用 pt 或中文字号（如 `小四`），首行缩进规则可使用 pt 或“字符”单位（如 `2字符`），并优先采用 DOCX 的原始字符缩进值；对缺失的格式信息不报错。标题连续性覆盖阿拉伯数字的单级和多级标签（如 `1.`、`1.2`），目录比对会忽略末尾页码。默认规则覆盖页边距；图表规则必须显式配置列数等约束才会执行，不读取嵌入 Excel 数据；复杂目录域和中文数字编号仍需人工核对或后续增强。
-当前规则库统一使用 `default.json`。规则加载、校验和执行入口为
-`backend.app.rules.loader.load_rules` 与 `backend.app.rules.service.check_document`；旧的
-`electronic-tech-cdu-v1.json` 和 `backend.app.services` 入口不再作为规则实现。
+## 自动检测项
 
-规则文件按学校规范区分自动检测项和人工核对项；封面、学校表格填写、复杂目录一致性、图表和参考文献著录等仍可能需要人工或后续深度检测。
+当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`paragraph_spacing`、`page_margin`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`、`required_sections`、`keyword_format`、`caption_format`、`header_text`。
+
+`default.json` 覆盖的学校规范包括：
+
+- 页面：A4（21×29.7cm），页边距上/下 3.5cm、左/右 3.0cm，页眉 2.75cm、页脚 1.75cm
+- 正文（含中文摘要、结论、致谢、附录正文）：宋体小四、两端对齐、首行缩进 2 字符、固定值 20 磅、段前 6 磅、段后 0 磅
+- 标题：第1章黑体小三居中 30/30；1.1 黑体四号顶格 18/18；1.1.1 / 1.1.1.1 黑体小四，12/12 与 6/6
+- 文首文尾标题：摘要/参考文献/致谢/附录/结论为黑体小三居中；ABSTRACT 为 Times New Roman 小三；目录标题为宋体小二（不是黑体小三）
+- 英文摘要正文：Times New Roman 小四、首行缩进 1 字符、固定值 20 磅
+- 关键词：3–8 个、分号分隔、末尾无标点；英文 Keywords 小写（出现时检查，专科论文不强制英文摘要）
+- 参考文献条目：宋体五号、悬挂缩进 1 字符、固定值 17 磅、段前 3 磅
+- 图/表题：宋体五号居中；图题段前 6/段后 12，表题段前 12/段后 6
+- 必备结构：摘要、目录、参考文献、致谢
+- 偶数页眉包含「电子科技大学成都学院本科毕业论文」
+- 标题编号连续性（含「第N章」）与目录/参考文献序号基线
+
+规则引擎只依据解析后的内存 `Document` 运行。字号可用 pt 或中文字号（如 `小四`），缩进可用 pt 或「字符」并优先采用 DOCX 原始字符缩进；对缺失的格式信息不报错。图表列数等约束只有显式配置 `table_figure_format` 才会执行，默认规则不启用该项。
+
+## 人工核对项（不做自动误杀）
+
+附件2教务表格、封面模板、签名日期、装订顺序、查重率、分专业字数等无法从正文 DOCX 稳定判定，保持人工核对，不写入自动 `checks`：
+
+- 封面、任务书、进度计划表、开题报告、初期/中期检查表、指导教师/评阅/答辩/成绩考核表、学术诚信声明、版权使用授权书、封底
+- 装订顺序、双面印刷、奇偶页页眉是否与当前章题一致
+- 查重率不高于 25%（学院可更严）
+- 字数：工科/艺术设计类设计型不少于 8000 字，论文型及理科不少于 10000 字，人文社科不少于 12000 字
+- 外文资料原文与译文、公式编号位置、量和单位全文统一
+- 参考文献著录内容是否符合《中国高校自然科学学报编排规范》
+
+复杂目录域、中文数字编号和嵌入 Excel 图表仍需人工核对或后续增强。
