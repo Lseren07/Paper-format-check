@@ -29,7 +29,10 @@ def valid_document(font: str) -> Document:
         _plain("p-0004", "目录"),
         _plain("p-0005", "参考文献"),
         _plain("p-0006", "致谢"),
-    ])
+    ], pages=[{
+        "section_index": 0, "number_format": None, "position": "footer",
+        "fields": [{"instruction": "PAGE", "part": "footer"}],
+    }])
 
 
 def test_load_school_rule_set() -> None:

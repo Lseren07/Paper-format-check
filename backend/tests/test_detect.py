@@ -104,6 +104,9 @@ def test_completed_task_exposes_parsed_document_for_analysis(tmp_path, monkeypat
     assert data["document"]["document_id"] == task_id
     assert data["document"]["source_filename"] == "thesis.docx"
     assert data["document"]["paragraphs"]
+    assert "format_summary" in data
+    assert "format_text" in data
+    assert "正文格式" in data["format_text"]
 
 
 def test_document_analysis_unknown_task_returns_404(tmp_path, monkeypatch) -> None:

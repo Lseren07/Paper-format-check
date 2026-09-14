@@ -779,6 +779,127 @@
       "type": "reference_baseline",
       "target": "all",
       "expected": {}
+    },
+    {
+      "id": "cover-title-font",
+      "type": "font",
+      "target": "cover_title",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "cover-title-size",
+      "type": "size",
+      "target": "cover_title",
+      "expected": {
+        "size": "三号"
+      }
+    },
+    {
+      "id": "abstract-font",
+      "type": "font",
+      "target": "abstract",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "abstract-size",
+      "type": "size",
+      "target": "abstract",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "abstract-indent",
+      "type": "paragraph_indent",
+      "target": "abstract",
+      "expected": {
+        "first_line_indent": "2字符"
+      }
+    },
+    {
+      "id": "abstract-alignment",
+      "type": "alignment",
+      "target": "abstract",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "figure-caption-font",
+      "type": "font",
+      "target": "figure_caption",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "figure-caption-size",
+      "type": "size",
+      "target": "figure_caption",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "figure-caption-alignment",
+      "type": "alignment",
+      "target": "figure_caption",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "figure-caption-position",
+      "type": "caption_position",
+      "target": "figure_caption",
+      "expected": {
+        "position": "below"
+      }
+    },
+    {
+      "id": "table-caption-font",
+      "type": "font",
+      "target": "table_caption",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "table-caption-size",
+      "type": "size",
+      "target": "table_caption",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "table-caption-alignment",
+      "type": "alignment",
+      "target": "table_caption",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "table-caption-position",
+      "type": "caption_position",
+      "target": "table_caption",
+      "expected": {
+        "position": "above"
+      }
+    },
+    {
+      "id": "page-number",
+      "type": "page_number",
+      "target": "all",
+      "expected": {
+        "position": "footer",
+        "continuous": true
+      }
     }
   ]
 }

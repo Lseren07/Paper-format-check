@@ -114,3 +114,169 @@ def test_parse_docx_extracts_page_margins_and_table_cell_paragraphs() -> None:
     assert parsed.sections[0]["footer_distance_pt"] is not None
     assert table_paragraph["text"] == "表格正文"
     assert table_paragraph["format"]["first_line_indent_chars"] == 2
+
+def _save_docx(document) -> bytes:
+    stream = BytesIO()
+    document.save(stream)
+    return stream.getvalue()
+
+
+def _add_page_field(paragraph) -> None:
+    from docx.oxml import OxmlElement
+
+    run = paragraph.add_run()
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+    run._r.append(begin)
+    instr = OxmlElement("w:instrText")
+    instr.set(qn("xml:space"), "preserve")
+    instr.text = " PAGE "
+    paragraph.add_run()._r.append(instr)
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+    paragraph.add_run()._r.append(end)
+
+
+def test_parse_docx_identifies_cover_abstract_and_references() -> None:
+    source = BuildDocument()
+    source.add_paragraph("电子科技大学成都学院")
+    title = source.add_paragraph("面向格式检测的论文题目")
+    title.runs[0].font.size = Inches(0.22)
+    source.add_paragraph("摘要")
+    source.add_paragraph("这是摘要正文，用于结构识别。")
+    source.add_paragraph("关键词：格式；检测")
+    heading = source.add_paragraph("第一章 绪论")
+    heading.style = "Heading 1"
+    source.add_paragraph("这是正文段落。")
+    source.add_paragraph("图1 系统架构")
+    source.add_paragraph("参考文献")
+    source.add_paragraph("[1] 张三. 测试文献.")
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item["text"]: item for item in parsed.paragraphs if item["location"]["part"] == "document"}
+    assert by_text["电子科技大学成都学院"]["structure"] == "cover"
+    assert by_text["面向格式检测的论文题目"]["structure"] == "cover"
+    assert by_text["面向格式检测的论文题目"]["structure_role"] == "title"
+    assert by_text["摘要"]["structure"] == "abstract"
+    assert by_text["摘要"]["structure_role"] == "title"
+    assert by_text["这是摘要正文，用于结构识别。"]["structure"] == "abstract"
+    assert by_text["关键词：格式；检测"]["structure"] == "keywords"
+    assert by_text["这是正文段落。"]["structure"] == "body"
+    assert by_text["图1 系统架构"]["structure"] == "figure_caption"
+    assert by_text["[1] 张三. 测试文献."]["structure"] == "references"
+    structure = parsed.metadata["structure"]
+    assert "面向格式检测的论文题目" in structure["cover"]["title"]
+    assert structure["abstract"]["paragraph_ids"]
+    assert structure["references"]["paragraph_ids"]
+
+
+def test_parse_docx_does_not_invent_cover_without_abstract_marker() -> None:
+    source = BuildDocument()
+    source.add_paragraph("第二章 系统设计", style="Heading 1")
+    source.add_paragraph("随着人工智能技术的发展")
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    assert all(item.get("structure") != "cover" for item in parsed.paragraphs)
+
+
+def test_parse_docx_extracts_page_number_fields() -> None:
+    from docx.oxml import OxmlElement
+
+    source = BuildDocument()
+    source.add_paragraph("正文")
+    footer = source.sections[0].footer.paragraphs[0]
+    footer.alignment = 1
+    _add_page_field(footer)
+    pg_num = OxmlElement("w:pgNumType")
+    pg_num.set(qn("w:fmt"), "upperRoman")
+    source.sections[0]._sectPr.append(pg_num)
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    assert parsed.pages
+    page = parsed.pages[0]
+    assert page["section_index"] == 0
+    assert page["number_format"] == "upperRoman"
+    assert page["position"] == "footer"
+    assert any("PAGE" in str(field.get("instruction", "")).upper() for field in page["fields"])
+
+
+def test_parse_docx_records_table_caption_block_order() -> None:
+    source = BuildDocument()
+    source.add_paragraph("表1 对比结果")
+    source.add_table(rows=1, cols=2)
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    caption = next(item for item in parsed.paragraphs if item["text"] == "表1 对比结果")
+    assert caption["structure"] == "table_caption"
+    assert parsed.tables[0]["block_index"] == caption["block_index"] + 1
+
+
+def _add_last_rendered_page_break(paragraph) -> None:
+    from docx.oxml import OxmlElement
+    run = paragraph.runs[0] if paragraph.runs else paragraph.add_run()
+    run._r.insert(0, OxmlElement('w:lastRenderedPageBreak'))
+
+
+def _add_seq_field(paragraph, name: str) -> None:
+    from docx.oxml import OxmlElement
+    run = paragraph.add_run()
+    begin = OxmlElement('w:fldChar')
+    begin.set(qn('w:fldCharType'), 'begin')
+    run._r.append(begin)
+    instr = OxmlElement('w:instrText')
+    instr.set(qn('xml:space'), 'preserve')
+    instr.text = f' SEQ {name} \\* ARABIC '
+    paragraph.add_run()._r.append(instr)
+    end = OxmlElement('w:fldChar')
+    end.set(qn('w:fldCharType'), 'end')
+    paragraph.add_run()._r.append(end)
+
+
+def test_parse_docx_assigns_word_rendered_page_numbers() -> None:
+    from docx.oxml import OxmlElement
+    source = BuildDocument()
+    source.add_paragraph('第一页')
+    second = source.add_paragraph('第二页')
+    _add_last_rendered_page_break(second)
+    pg_num = OxmlElement('w:pgNumType')
+    pg_num.set(qn('w:start'), '3')
+    source.sections[0]._sectPr.append(pg_num)
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item['text']: item for item in parsed.paragraphs}
+    assert by_text['第一页']['page_number'] == 3
+    assert by_text['第二页']['page_number'] == 4
+    assert [page['page_number'] for page in parsed.pages] == [3, 4]
+    assert by_text['第二页']['paragraph_id'] in parsed.pages[1]['paragraph_ids']
+    assert parsed.pages[0]['source'] == 'last_rendered'
+
+
+def test_parse_docx_identifies_cover_from_thesis_hints_without_abstract() -> None:
+    source = BuildDocument()
+    source.add_paragraph('电子科技大学成都学院')
+    source.add_paragraph('本科毕业论文')
+    source.add_paragraph('学号：20230001')
+    heading = source.add_paragraph('第一章 绪论')
+    heading.style = 'Heading 1'
+    source.add_paragraph('正文开始')
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item['text']: item for item in parsed.paragraphs if item['location']['part'] == 'document'}
+    assert by_text['本科毕业论文']['structure'] == 'cover'
+    assert by_text['学号：20230001']['structure'] == 'cover'
+    assert by_text['正文开始']['structure'] == 'body'
+
+
+def test_parse_docx_identifies_abstract_variants_and_complex_captions() -> None:
+    source = BuildDocument()
+    source.add_paragraph('中文摘要')
+    source.add_paragraph('摘要正文')
+    source.add_paragraph('图1-1 系统架构')
+    source.add_paragraph('Figure 2 Overview')
+    source.add_paragraph('表1.1 对比结果')
+    caption = source.add_paragraph('实验结果曲线')
+    caption.style = 'Caption'
+    _add_seq_field(caption, '图')
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item['text']: item for item in parsed.paragraphs if item['location']['part'] == 'document'}
+    assert by_text['中文摘要']['structure'] == 'abstract'
+    assert by_text['摘要正文']['structure'] == 'abstract'
+    assert by_text['图1-1 系统架构']['structure'] == 'figure_caption'
+    assert by_text['Figure 2 Overview']['structure'] == 'figure_caption'
+    assert by_text['表1.1 对比结果']['structure'] == 'table_caption'
+    caption_para = next(item for item in parsed.paragraphs if '实验结果曲线' in item['text'])
+    assert caption_para['structure'] == 'figure_caption'

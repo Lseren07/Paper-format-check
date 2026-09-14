@@ -57,6 +57,8 @@ describe("paper detection flow", () => {
             task_id: "T123",
             filename: "thesis.docx",
             status: "completed",
+            format_text: "\u6b63\u6587\u683c\u5f0f\uff1a\n\u5b57\u4f53\uff1a\u5b8b\u4f53\n\u5b57\u53f7\uff1a\u5c0f\u56db\n\u884c\u8ddd\uff1a1.5\u500d",
+            format_summary: { body: { font: "\u5b8b\u4f53", size: "\u5c0f\u56db", line_spacing: "1.5\u500d" } },
             document: {
               schema_version: "1.0",
               document_id: "T123",
@@ -100,6 +102,8 @@ describe("paper detection flow", () => {
     expect(screen.getByText("测试论文")).toBeInTheDocument();
     expect(screen.getByText("第一章 绪论")).toBeInTheDocument();
     expect(screen.getByText("2 × 3")).toBeInTheDocument();
+    expect(screen.getByText(/正文格式/)).toBeInTheDocument();
+    expect(screen.getByText(/字体：宋体/)).toBeInTheDocument();
   });
 
   it("shows an analysis error next to the format analysis view", async () => {

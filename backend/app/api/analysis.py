@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
+from ..parser.format_summary import build_format_summary
 from ..services.task_store import store
 
 router = APIRouter(prefix="/document", tags=["analysis"])
@@ -16,6 +17,7 @@ def document_analysis(task_id: str) -> dict:
         raise HTTPException(status_code=400, detail=task.message or "检测失败")
     if task.status != "completed" or task.document is None:
         raise HTTPException(status_code=409, detail="检测尚未完成")
+    summary = build_format_summary(task.document)
     return {
         "code": 200,
         "message": "success",
@@ -24,5 +26,7 @@ def document_analysis(task_id: str) -> dict:
             "filename": task.filename,
             "status": task.status,
             "document": task.document.model_dump(),
+            "format_summary": summary["structured"],
+            "format_text": summary["text"],
         },
     }

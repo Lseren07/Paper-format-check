@@ -23,6 +23,8 @@ def format_location(document: Document, location: str) -> str:
     margin = _MARGIN_RE.fullmatch(location)
     if margin:
         return _MARGIN_LABELS[margin.group(1)]
+    if location.endswith(":page-number") or location == "page-number":
+        return "页码"
     if location == "toc":
         return "目录"
     table = _TABLE_RE.fullmatch(location)
@@ -42,8 +44,19 @@ def relocate_errors(document: Document, errors: list[ErrorItem]) -> list[ErrorIt
 
 
 def _format_paragraph_location(document: Document, paragraph_id: str) -> str:
-    parts = [_format_heading(item) for item in _heading_chain(document, paragraph_id)]
     paragraph = _find_paragraph(document, paragraph_id)
+    structure_labels = {
+        "cover": "封面",
+        "abstract": "摘要",
+        "references": "参考文献",
+        "figure_caption": "图题",
+        "table_caption": "表题",
+        "keywords": "关键词",
+    }
+    structure_label = structure_labels.get((paragraph or {}).get("structure", ""))
+    parts = [_format_heading(item) for item in _heading_chain(document, paragraph_id)]
+    if structure_label and structure_label not in parts:
+        parts.insert(0, structure_label)
     table_label = _table_label(paragraph)
     if table_label:
         parts.append(table_label)
