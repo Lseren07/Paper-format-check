@@ -1,6 +1,204 @@
 {
   "schema_version": "1.0",
   "name": "电子科技大学成都学院本科毕业论文格式规范",
+  "source": {
+    "title": "电子科技大学成都学院毕业论文（设计）撰写格式规范",
+    "document": "附件1：电子科技大学成都学院毕业论文（设计）撰写格式规范.docx",
+    "organization": "电子科技大学成都学院",
+    "scope": "本科毕业论文（设计）",
+    "clauses": [
+      {
+        "id": "structure",
+        "title": "论文结构与装订顺序",
+        "chapter": "一、毕业论文（设计）结构",
+        "text": "论文（设计）应按顺序包含封面、任务书、进度计划表、开题报告、初期检查表、中期检查表、指导教师评分表、评阅教师评分表、答辩记录与成绩评定表、成绩考核表、学术诚信声明、版权使用授权书、摘要与关键词、目录、正文、参考文献、致谢、附录、外文资料原文、译文、封底共二十一项，从前往后按此顺序装订；其中标准表格由教务处统一制定，学生和教师应按表格要求完整填写。",
+        "rules": [
+          "required-sections"
+        ],
+        "automated": true
+      },
+      {
+        "id": "preface",
+        "title": "封面、摘要与关键词",
+        "chapter": "三、论文排版（一）字体（号）与排位·文首部分",
+        "text": "封面题目为三号宋体、行距 1.5lines；「摘 要」为小三号黑体加粗居中，段前 30 磅、段后 30 磅，内容为小四号宋体，两端对齐、首行缩进 2 字符、段前 6 磅、段后 0 磅、固定值 20 磅；ABSTRACT 为小三号 Times New Roman 加粗居中，内容为小四号 Times New Roman、首行缩进 1 字符、固定值 20 磅；中文摘要一般控制在 200-300 字，外文摘要不超过 250 个实词；关键词一般为 3-8 个，用分号分隔，最后一个关键词后不打标点符号，英文 Keywords 小写。",
+        "rules": [
+          "abstract-title-font",
+          "abstract-title-size",
+          "abstract-title-alignment",
+          "abstract-title-bold",
+          "abstract-title-spacing",
+          "abstract-en-title-font",
+          "abstract-en-title-size",
+          "abstract-en-title-alignment",
+          "abstract-en-title-bold",
+          "abstract-en-title-spacing",
+          "abstract-en-font",
+          "abstract-en-size",
+          "abstract-en-alignment",
+          "abstract-en-spacing",
+          "abstract-en-line-spacing",
+          "abstract-en-first-line-indent",
+          "keywords-font",
+          "keywords-size",
+          "keywords-en-font",
+          "keywords-en-size",
+          "keywords-zh",
+          "keywords-en-format"
+        ],
+        "automated": true
+      },
+      {
+        "id": "toc",
+        "title": "目录",
+        "chapter": "三、论文排版（一）文首部分；一、结构·目录",
+        "text": "「目 录」为宋体小二号居中加粗，段前 30 磅、段后 30 磅；目录内容为小四号宋体，两端对齐、固定值 20 磅；中英文摘要不列入目录，目录中的标题要与正文中的标题一致，可按第1章……、1.1……、1.1.1……多级标题编写。",
+        "rules": [
+          "toc-title-font",
+          "toc-title-size",
+          "toc-title-alignment",
+          "toc-title-bold",
+          "toc-title-spacing",
+          "toc-body-font",
+          "toc-body-size",
+          "toc-body-alignment",
+          "toc-body-line-spacing",
+          "toc-consistency"
+        ],
+        "automated": true
+      },
+      {
+        "id": "body",
+        "title": "正文主体与章节标题",
+        "chapter": "三、论文排版（一）正文部分",
+        "text": "正文（含结论）为宋体小四，非汉字均为 Times New Roman 字体，两端对齐、首行缩进 2 字符、段前 6 磅、段后 0 磅、固定值 20 磅，插入图、表、公式时行距为最小值 20 磅；注释为宋体五号；章节层次依次为第1章黑体小三号居中（段前 30 磅、段后 30 磅）、1.1 黑体四号顶格（18/18 磅）、1.1.1 黑体小四号顶格（12/12 磅）、1.1.1.1 黑体小四号顶格（6/6 磅），「结论」为黑体小三号居中（30/30 磅）且内容格式同正文；每章结束后应另起新页。",
+        "rules": [
+          "body-font",
+          "body-size",
+          "body-alignment",
+          "body-spacing",
+          "body-line-spacing",
+          "body-first-line-indent",
+          "title1-font",
+          "title1-size",
+          "title1-alignment",
+          "title1-bold",
+          "title1-spacing",
+          "title2-font",
+          "title2-size",
+          "title2-alignment",
+          "title2-bold",
+          "title2-spacing",
+          "title3-font",
+          "title3-size",
+          "title3-alignment",
+          "title3-bold",
+          "title3-spacing",
+          "title4-font",
+          "title4-size",
+          "title4-alignment",
+          "title4-bold",
+          "title4-spacing",
+          "conclusion-title-font",
+          "conclusion-title-size",
+          "conclusion-title-alignment",
+          "conclusion-title-bold",
+          "conclusion-title-spacing",
+          "heading-numbering"
+        ],
+        "automated": true
+      },
+      {
+        "id": "references",
+        "title": "参考文献与文尾部分",
+        "chapter": "三、论文排版（一）文尾部分",
+        "text": "「参考文献」「致谢」「附录」均为黑体小三号居中，段前 30 磅、段后 30 磅；参考文献内容为宋体五号、非汉字均为 Times New Roman 字体，两端对齐、悬挂缩进 1 字符、段前 3 磅、段后 0 磅、固定值 17 磅；参考文献序号应左顶格，用数字加方括号表示，如「[1]」，每一条著录均以「.」结束；致谢、附录内容格式同正文。",
+        "rules": [
+          "references-title-font",
+          "references-title-size",
+          "references-title-alignment",
+          "references-title-bold",
+          "references-title-spacing",
+          "thanks-title-font",
+          "thanks-title-size",
+          "thanks-title-alignment",
+          "thanks-title-bold",
+          "thanks-title-spacing",
+          "appendix-title-font",
+          "appendix-title-size",
+          "appendix-title-alignment",
+          "appendix-title-bold",
+          "appendix-title-spacing",
+          "references-font",
+          "references-size",
+          "references-alignment",
+          "references-spacing",
+          "references-line-spacing",
+          "references-hanging-indent",
+          "reference-baseline"
+        ],
+        "automated": true
+      },
+      {
+        "id": "figure-table",
+        "title": "图、表与公式",
+        "chapter": "三、论文排版（三）图表和公式",
+        "text": "图序与图名居中置于图下方，图题为宋体五号居中，段前 6 磅、段后 12 磅；表序及表名置于表上方，表题为宋体五号居中，段前 12 磅、段后 6 磅；公式编号加括号置于右边行末，公式与编号之间不加虚线，公式居中且段前段后为 6 磅、行距最小值 20 磅；图表附注横排于图表下方作为图例说明，宋体五号居中，数字、字母和符号为 Times New Roman 五号。",
+        "rules": [
+          "caption-format",
+          "figure-caption-spacing",
+          "table-caption-spacing"
+        ],
+        "automated": true
+      },
+      {
+        "id": "header-footer",
+        "title": "页眉与页码",
+        "chapter": "三、论文排版（二）页眉和页码",
+        "text": "文首部分页眉为宋体五号居中：中文摘要页打印「摘 要」、英文摘要页打印「ABSTRACT」、目录页打印「目 录」；页码为 Times New Roman 五号居中，自中文摘要页起按罗马数字Ⅰ、Ⅱ……连续编排。正文部分自绪论起奇数页页眉按「第1章 章题」形式打印该页所在章号与章题目，偶数页页眉打印「电子科技大学成都学院本科毕业论文」；页码位于页面底端居中，Times New Roman 五号，自引言部分起按阿拉伯数字连续编排。",
+        "rules": [
+          "header-text"
+        ],
+        "automated": true
+      },
+      {
+        "id": "page-setup",
+        "title": "页面设置与打印规格",
+        "chapter": "四、论文打印规格",
+        "text": "论文统一采用 Word 文档排版打印，纸张为 A4（210×297mm）；页边距上下均为 3.5 厘米、左右均为 3 厘米；版式中页眉 2.75 厘米、页脚 1.75 厘米并设置为奇偶页不同；正文要求双面印刷；每页印刷版面 146×220mm，每行 32～34 字，每页 29～31 行。",
+        "rules": [
+          "page-margin"
+        ],
+        "automated": true
+      },
+      {
+        "id": "reference-style",
+        "title": "参考文献著录格式",
+        "chapter": "三、论文排版（四）参考文献",
+        "text": "依据《中国高校自然科学学报编排规范》的要求，建议按论文中引用的顺序列表参考文献，著录示例覆盖连续出版物、论文集、学位论文、专利与技术标准等类型。",
+        "automated": false
+      },
+      {
+        "id": "units",
+        "title": "量与单位",
+        "chapter": "三、论文排版（五）量和单位",
+        "text": "严格执行 GB3100～3102 有关量和单位的规定；单位名称可采用国际通用符号或中文名称，但全文应统一，不得混用。",
+        "automated": false
+      },
+      {
+        "id": "body-content",
+        "title": "正文章节内容组织",
+        "chapter": "二、正文主体说明",
+        "text": "理工类建议按课题背景及任务、方案论证及选择、课题工作（基本原理、设计与制作、系统测试）、结论与分析组织；文科类建议按主题与对象、思路与方案论证、创作（设计、调查）工作、作品（结果）分析组织。",
+        "automated": false
+      }
+    ],
+    "notes": [
+      "论文字数：工科类与艺术设计类设计型题目说明书不少于 8000 字；论文型题目及理科类不少于 10000 字；人文社科类不少于 12000 字。",
+      "查重率要求不高于 25%，各学院可根据学科专业特色制定更为严格的查重标准。",
+      "封面、教务表格填写完整性、双面印刷与装订顺序、外文资料原文与译文等事项需人工核对。"
+    ]
+  },
   "checks": [
     {
       "id": "page-margin",
