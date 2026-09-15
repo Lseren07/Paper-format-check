@@ -1,4 +1,4 @@
-﻿"""Build a human-readable format summary from a parsed Document."""
+"""Build a human-readable format summary from a parsed Document."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from ..models.contracts import Document
+from .styles import font_for_text
 
 CHINESE_SIZES = {
     "\u521d\u53f7": 42,
@@ -62,7 +63,7 @@ def _group(paragraphs: list[dict[str, Any]]) -> dict[str, str]:
     sizes = []
     spacings = []
     for paragraph in paragraphs:
-        fonts.extend((run.get("font") or {}).get("effective") for run in paragraph.get("runs") or [])
+        fonts.extend(font_for_text(run.get("font") or {}, run.get("text")) for run in paragraph.get("runs") or [])
         sizes.extend(size_name(run.get("size_pt")) for run in paragraph.get("runs") or [])
         spacings.append(line_spacing_label((paragraph.get("format") or {}).get("line_spacing")))
     return {

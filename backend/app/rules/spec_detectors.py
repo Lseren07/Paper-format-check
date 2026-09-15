@@ -3,6 +3,7 @@ import re
 from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule
 from .errors import make_error
+from ..parser.styles import font_for_text, font_matches
 from .targets import CAPTION_RE, paragraph_text, size_to_pt
 
 
@@ -60,8 +61,8 @@ def detect_caption_format(document: Document, rule: CheckRule) -> list[ErrorItem
         expected_pt = size_to_pt(spec.get("size"))
         for index, run in enumerate(paragraph.get("runs") or [], start=1):
             location = f"{paragraph.get('paragraph_id', 'paragraph')}:run-{index:04d}"
-            current_font = (run.get("font") or {}).get("effective")
-            if expected_font and current_font and current_font != expected_font:
+            current_font = font_for_text(run.get("font") or {}, run.get("text"))
+            if expected_font and current_font and not font_matches(current_font, expected_font, run.get("text")):
                 errors.append(make_error(rule, location=location, content=paragraph.get("text", ""), current=str(current_font), expected=str(expected_font)))
             current_size = run.get("size_pt")
             if expected_pt is not None and current_size is not None and float(current_size) != float(expected_pt):

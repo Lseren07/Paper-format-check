@@ -2,6 +2,7 @@ import re
 from typing import Any
 
 from ..models.contracts import Document
+from ..parser.structure import heading_level_from_style
 from .contracts import CheckRule
 
 
@@ -62,61 +63,112 @@ def _is_toc_style(paragraph: dict[str, Any]) -> bool:
     return str((paragraph.get("style") or {}).get("name") or "").lower().startswith("toc")
 
 
+def _location_part(paragraph: dict[str, Any]) -> str:
+    return str((paragraph.get("location") or {}).get("part", "document"))
+
+
+def _style_name(paragraph: dict[str, Any]) -> str:
+    return str((paragraph.get("style") or {}).get("name") or "")
+
+
+def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
+    style = _style_name(paragraph)
+    text = paragraph_text(paragraph)
+    if re.match(r"^续表", text) or (text.startswith("表") and any(token in style for token in ("图注", "表注", "表题"))):
+        return {"table_caption", "table-caption", "caption"}
+    if text and any(token in style for token in ("图注", "图题")):
+        return {"figure_caption", "figure-caption", "caption"}
+    return set()
+
+
+def _skip_as_body(paragraph: dict[str, Any]) -> bool:
+    style = _style_name(paragraph)
+    text = paragraph_text(paragraph)
+    if "外文" in style:
+        return True
+    if any(token in style for token in ("图片", "图注", "图题", "表注", "表题")):
+        return True
+    if paragraph.get("drawings") and not text:
+        return True
+    if not text:
+        return True
+    return False
+
+
 def paragraph_targets(document: Document) -> dict[str, set[str]]:
     mapping: dict[str, set[str]] = {}
     region = "body"
+    seen_chapter = False
     for paragraph in document.paragraphs:
+        pid = str(paragraph.get("paragraph_id", ""))
+        if _location_part(paragraph) != "document":
+            mapping[pid] = set()
+            continue
         text = paragraph_text(paragraph)
         assigned: set[str] = set()
-        title = special_title_target(text)
-        if title:
-            assigned.add(title)
-            region = TITLE_BODY_REGION.get(title, "body")
-        elif KEYWORDS_ZH.match(text):
-            assigned.add("keywords")
-        elif KEYWORDS_EN.match(text):
-            assigned.add("keywords-en")
-        elif CAPTION_RE.match(text):
-            assigned.add("figure-caption" if text.startswith("图") else "table-caption")
-            assigned.add("caption")
-        elif _is_toc_style(paragraph):
+        if _is_toc_style(paragraph):
             assigned.add("toc-body")
         else:
-            level = (paragraph.get("heading") or {}).get("level")
-            if level:
-                assigned.add(f"title{level}")
-                assigned.add("heading")
-                region = "body"
+            title = special_title_target(text)
+            if title:
+                assigned.add(title)
+                region = TITLE_BODY_REGION.get(title, "body")
+            elif KEYWORDS_ZH.match(text):
+                assigned.add("keywords")
+            elif KEYWORDS_EN.match(text):
+                assigned.add("keywords-en")
+            elif CAPTION_RE.match(text):
+                assigned.add("figure-caption" if text.startswith("图") else "table-caption")
+                assigned.add("caption")
             else:
-                assigned.add(region)
-                if region in BODY_REGIONS:
-                    assigned.add("body")
+                level = (paragraph.get("heading") or {}).get("level") or heading_level_from_style((paragraph.get("style") or {}).get("name"))
+                if level:
+                    assigned.add(f"title{level}")
+                    assigned.add("heading")
+                    region = "body"
+                else:
+                    assigned.add(region)
+                    if region in BODY_REGIONS:
+                        assigned.add("body")
         structure = paragraph.get("structure")
         role = paragraph.get("structure_role")
         if structure == "cover":
-            assigned.update({"cover"})
-            assigned.discard("body")
+            assigned = {"cover"}
             if role == "title":
                 assigned.add("cover_title")
         elif structure == "abstract":
-            assigned.update({"abstract", "abstract-body"} if role != "title" else {"abstract-title"})
-            assigned.discard("body")
+            assigned = {"abstract", "abstract-body"} if role != "title" else {"abstract-title"}
         elif structure == "keywords":
-            assigned.update({"keywords"})
-            assigned.discard("body")
+            assigned = {"keywords"}
         elif structure == "references":
-            assigned.update({"references", "references-entry"} if role != "title" else {"references-title"})
-            assigned.discard("body")
+            assigned = {"references", "references-entry"} if role != "title" else {"references-title"}
         elif structure == "toc":
-            assigned.update({"toc-body"})
-            assigned.discard("body")
+            assigned = {"toc-body"}
+        elif structure == "body":
+            level = (paragraph.get("heading") or {}).get("level") or heading_level_from_style((paragraph.get("style") or {}).get("name"))
+            note = _note_caption_targets(paragraph)
+            if note:
+                assigned = note
+            elif _skip_as_body(paragraph):
+                assigned = set()
+            elif level:
+                assigned = {f"title{level}", "heading"}
+                if level == 1:
+                    seen_chapter = True
+            else:
+                assigned.discard("toc-body")
+                if seen_chapter:
+                    assigned.difference_update({"abstract-title", "abstract-en-title"})
+                if not assigned:
+                    assigned = {"body"}
+            region = "body"
         elif structure == "figure_caption":
-            assigned.update({"figure_caption", "figure-caption", "caption"})
-            assigned.discard("body")
+            assigned = {"figure_caption", "figure-caption", "caption"}
         elif structure == "table_caption":
-            assigned.update({"table_caption", "table-caption", "caption"})
-            assigned.discard("body")
-        mapping[str(paragraph.get("paragraph_id", ""))] = assigned
+            assigned = {"table_caption", "table-caption", "caption"}
+        elif structure == "table":
+            assigned = set()
+        mapping[pid] = assigned
     return mapping
 
 

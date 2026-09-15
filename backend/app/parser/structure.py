@@ -22,6 +22,24 @@ SEQ_FIGURE = re.compile(r"SEQ\s+(Figure|Fig\.?|\u56fe|\u9644\u56fe)", re.I)
 SEQ_TABLE = re.compile(r"SEQ\s+(Table|Tab\.?|\u8868|\u9644\u8868)", re.I)
 
 
+
+def heading_level_from_style(name: str | None) -> int | None:
+    style = (name or "").strip()
+    if not style:
+        return None
+    if any(token in style for token in ("目录", "摘要", "外文", "封面", "toc")):
+        return None
+    numbered = re.search(r"([1-9])\s*级标题", style)
+    if numbered:
+        return int(numbered.group(1)) + 1
+    match = re.search(r"(?:Heading|标题)\s*([1-9])", style, re.I)
+    if match:
+        return int(match.group(1))
+    if "大标题" in style:
+        return 1
+    return None
+
+
 def _is_document(paragraph: dict[str, Any]) -> bool:
     return (paragraph.get("location") or {}).get("part", "document") == "document"
 
@@ -39,9 +57,21 @@ def _size(paragraph: dict[str, Any]) -> float:
     return max(sizes) if sizes else -1.0
 
 
+TOC_PAGE_SUFFIX = re.compile(r"(?:\t|\s{2,})[\divxIVX]+\s*$", re.I)
+
+
+def _is_toc_like(paragraph: dict[str, Any]) -> bool:
+    if _style_name(paragraph).lower().startswith("toc"):
+        return True
+    return bool(TOC_PAGE_SUFFIX.search(_text(paragraph)))
+
+
 def _find(pattern: re.Pattern[str], paragraphs: list[dict[str, Any]], start: int = 0) -> int | None:
     for index in range(start, len(paragraphs)):
-        if pattern.match(_text(paragraphs[index])):
+        paragraph = paragraphs[index]
+        if _is_toc_like(paragraph):
+            continue
+        if pattern.match(_text(paragraph)):
             return index
     return None
 
@@ -66,6 +96,45 @@ def _fields(paragraph: dict[str, Any]) -> str:
     return " ".join(str(item) for item in (paragraph.get("fields") or []))
 
 
+
+COVER_TOPIC = re.compile(r"^题\s*目")
+COVER_META = re.compile(
+    r"^(?:学\s*院|专\s*业|姓\s*名|学\s*号|指导教师|电子科技大学|毕业论文|本科毕业|学术诚信|版权)"
+)
+
+
+def _pick_cover_titles(cover_paras: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    styled = [
+        paragraph for paragraph in cover_paras
+        if "论文题目" in _style_name(paragraph) or "封面题目" in _style_name(paragraph)
+    ]
+    if styled:
+        return styled
+    topic = next((paragraph for paragraph in cover_paras if COVER_TOPIC.match(_text(paragraph))), None)
+    if topic is not None:
+        chosen = [topic]
+        start = cover_paras.index(topic)
+        for paragraph in cover_paras[start + 1:]:
+            text = _text(paragraph)
+            if not text:
+                continue
+            if COVER_META.match(text) or COVER_TOPIC.match(text):
+                break
+            chosen.append(paragraph)
+            break
+        return chosen
+    scored: list[tuple[float, int, dict[str, Any]]] = []
+    for paragraph in cover_paras:
+        text = _text(paragraph)
+        if not text or COVER_META.match(text):
+            continue
+        scored.append((abs(_size(paragraph) - 16.0), -len(text), paragraph))
+    if not scored:
+        return []
+    scored.sort(key=lambda item: (item[0], item[1]))
+    return [scored[0][2]]
+
+
 def annotate_structure(paragraphs: list[dict[str, Any]], tables: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     body = [paragraph for paragraph in paragraphs if _is_document(paragraph)]
     table_blocks = {table.get("block_index") for table in (tables or []) if table.get("block_index") is not None}
@@ -79,7 +148,7 @@ def annotate_structure(paragraphs: list[dict[str, Any]], tables: list[dict[str, 
         else:
             paragraph.setdefault("structure", "body")
 
-    abstract_idx = next((index for index, paragraph in enumerate(body) if _is_abstract_title(paragraph)), None)
+    abstract_idx = next((index for index, paragraph in enumerate(body) if not _is_toc_like(paragraph) and _is_abstract_title(paragraph)), None)
     toc_idx = _find(TOC_TITLE, body)
     ref_idx = _find(REF_TITLE, body)
     keywords_idx = _find(KEYWORDS, body)
@@ -88,8 +157,7 @@ def annotate_structure(paragraphs: list[dict[str, Any]], tables: list[dict[str, 
         cover_paras = body[:cover_end]
         for paragraph in cover_paras:
             paragraph["structure"] = "cover"
-        if cover_paras:
-            title = max(cover_paras, key=lambda item: (_size(item), len(_text(item))))
+        for title in _pick_cover_titles(cover_paras):
             title["structure_role"] = "title"
 
     if abstract_idx is not None:
@@ -116,10 +184,15 @@ def annotate_structure(paragraphs: list[dict[str, Any]], tables: list[dict[str, 
         body[ref_idx]["structure_role"] = "title"
         end = len(body)
         for index in range(ref_idx + 1, len(body)):
-            if ACK.match(_text(body[index])):
+            paragraph = body[index]
+            if _is_toc_like(paragraph):
+                continue
+            if ACK.match(_text(paragraph)):
                 end = index
                 break
         for paragraph in body[ref_idx + 1:end]:
+            if _is_toc_like(paragraph):
+                continue
             paragraph["structure"] = "references"
             paragraph["structure_role"] = "body"
 

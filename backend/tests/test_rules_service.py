@@ -45,11 +45,15 @@ def test_default_rules_accept_normalized_body_size_and_indent() -> None:
     assert {error.type for error in errors}.isdisjoint({"size_error", "paragraph_indent_error"})
 
 
-def test_default_rules_check_table_cell_paragraph_format() -> None:
+def test_default_rules_do_not_apply_body_format_to_table_cell_paragraphs() -> None:
     document = Document(document_id="D1", source_filename="x.docx", paragraphs=[{
         "paragraph_id": "p-0001", "text": "表格正文", "heading": {"level": None},
         "style": {"name": "Normal"}, "location": {"part": "table"}, "format": {},
         "runs": [{"text": "表格正文", "font": {"effective": "黑体"}, "size_pt": 12, "bold": None}],
     }])
     errors = check_document(document, Path("rules/default.json"))
-    assert any(error.type == "font_error" and error.location == "p-0001:run-0001" for error in errors)
+    assert not any(
+        error.rule_id in {"body-font", "body-size", "body-alignment", "body-line-spacing"}
+        and str(error.location).startswith("p-0001")
+        for error in errors
+    )

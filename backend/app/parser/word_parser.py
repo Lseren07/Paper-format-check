@@ -12,11 +12,11 @@ from docx import Document as DocxDocument
 
 from ..models.contracts import Document
 from .errors import DocumentParseError
-from .styles import parse_styles, parse_theme, resolve_style
+from .styles import font_for_text, parse_styles, parse_theme, resolve_style
 from .numbering import parse_numbering
 from .numbering import numbering_label
 from .relationships import parse_relationships
-from .structure import annotate_structure
+from .structure import annotate_structure, heading_level_from_style
 from .pages import extract_pages
 from docx.oxml.ns import qn
 
@@ -44,19 +44,43 @@ def _drawings(paragraph, relationships: dict[str, str]) -> list[dict]:
     return drawings
 
 
+
+def _run_rfonts(run) -> dict[str, str]:
+    r_pr = run._r.rPr
+    if r_pr is None or r_pr.rFonts is None:
+        return {}
+    fonts = r_pr.rFonts
+    out = {}
+    for key in ("ascii", "hAnsi", "eastAsia", "cs"):
+        value = fonts.get(qn(f"w:{key}"))
+        if value:
+            out[key] = value
+    return out
+
+
+def _run_font_payload(run, style_font: dict) -> dict[str, str | None]:
+    direct = _run_rfonts(run)
+    ascii_name = direct.get("ascii") or style_font.get("ascii") or run.font.name
+    east_asia = direct.get("eastAsia") or style_font.get("eastAsia")
+    payload = {
+        "ascii": ascii_name,
+        "east_asia": east_asia,
+        "effective": ascii_name or east_asia,
+    }
+    payload["effective"] = font_for_text(payload, run.text) or ascii_name or east_asia
+    return payload
+
+
 def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[str, str], *, location: dict) -> dict:
     style_id = paragraph.style.style_id
     effective = resolve_style(style_id, resources)
     runs = []
     for run in paragraph.runs:
         font = run.font
-        runs.append({"text": run.text, "font": {"effective": font.name or (effective.get("font") or {}).get("eastAsia"), "ascii": (effective.get("font") or {}).get("ascii"), "east_asia": (effective.get("font") or {}).get("eastAsia")}, "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
+        runs.append({"text": run.text, "font": _run_font_payload(run, effective.get("font") or {}), "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
     pf = paragraph.paragraph_format
     alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
-    heading_level = None
-    match = re.search(r"(?:Heading|标题)\s*([1-9])", paragraph.style.name or "", re.I)
-    if match:
-        heading_level = int(match.group(1))
+    heading_level = heading_level_from_style(paragraph.style.name)
     ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
     ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
     first_line_chars = ind.get(f"{ns}firstLineChars") if ind is not None else None

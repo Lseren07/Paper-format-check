@@ -280,3 +280,44 @@ def test_parse_docx_identifies_abstract_variants_and_complex_captions() -> None:
     assert by_text['表1.1 对比结果']['structure'] == 'table_caption'
     caption_para = next(item for item in parsed.paragraphs if '实验结果曲线' in item['text'])
     assert caption_para['structure'] == 'figure_caption'
+
+
+
+def _wrap_in_sdt(paragraph) -> None:
+    from docx.oxml import OxmlElement
+
+    sdt = OxmlElement("w:sdt")
+    sdt.append(OxmlElement("w:sdtPr"))
+    content = OxmlElement("w:sdtContent")
+    element = paragraph._element
+    parent = element.getparent()
+    parent.replace(element, sdt)
+    content.append(element)
+    sdt.append(content)
+
+
+def test_parse_docx_reads_page_field_inside_footer_sdt() -> None:
+    source = BuildDocument()
+    source.add_paragraph("正文")
+    footer = source.sections[0].footer.paragraphs[0]
+    _add_page_field(footer)
+    _wrap_in_sdt(footer)
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    assert parsed.pages
+    assert parsed.pages[0]["position"] == "footer"
+    assert any("PAGE" in str(field.get("instruction", "")).upper() for field in parsed.pages[0]["fields"])
+
+
+def test_parse_docx_cover_title_skips_larger_school_name() -> None:
+    source = BuildDocument()
+    school = source.add_paragraph("电子科技大学成都学院")
+    school.runs[0].font.size = Inches(0.5)
+    source.add_paragraph("毕业论文（设计）")
+    source.add_paragraph("题    目 面向格式检测的论文题目")
+    source.add_paragraph("摘要")
+    source.add_paragraph("这是摘要正文，用于结构识别。")
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item["text"]: item for item in parsed.paragraphs if item["location"]["part"] == "document"}
+    assert by_text["电子科技大学成都学院"].get("structure_role") != "title"
+    assert by_text["题    目 面向格式检测的论文题目"]["structure_role"] == "title"
+    assert "面向格式检测的论文题目" in parsed.metadata["structure"]["cover"]["title"]

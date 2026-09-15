@@ -128,8 +128,8 @@ def _section_settings(index: int, section) -> dict[str, Any]:
     number_format = pg_num.get(qn("w:fmt")) if pg_num is not None else None
     start = pg_num.get(qn("w:start")) if pg_num is not None else None
     fields: list[dict[str, str]] = []
-    for part, obj in (("header", section.header), ("footer", section.footer)):
-        fields.extend(_part_fields(obj.paragraphs, part))
+    for part, obj in _header_footer_objects(section):
+        fields.extend(_part_fields(obj, part))
     page_fields = [field for field in fields if re.search(r"PAGE", field["instruction"], re.I)]
     footer_hit = any(field["part"] == "footer" for field in page_fields)
     header_hit = any(field["part"] == "header" for field in page_fields)
@@ -150,14 +150,30 @@ def _section_settings(index: int, section) -> dict[str, Any]:
     }
 
 
-def _part_fields(paragraphs, part: str) -> list[dict[str, str]]:
+def _header_footer_objects(section):
+    mapping = (
+        ("header", "header"),
+        ("footer", "footer"),
+        ("even_page_header", "header"),
+        ("even_page_footer", "footer"),
+        ("first_page_header", "header"),
+        ("first_page_footer", "footer"),
+    )
+    for attr, part in mapping:
+        obj = getattr(section, attr, None)
+        if obj is not None:
+            yield part, obj
+
+
+def _part_fields(obj, part: str) -> list[dict[str, str]]:
+    element = getattr(obj, "_element", None)
+    if element is None:
+        return []
     fields = []
-    for paragraph in paragraphs:
-        root = ET.fromstring(paragraph._p.xml)
-        for node in root.iter(f"{W}instrText"):
-            instruction = "".join(node.itertext()).strip()
-            if instruction:
-                fields.append({"instruction": instruction, "part": part})
+    for node in element.iter(qn("w:instrText")):
+        instruction = "".join(node.itertext()).strip()
+        if instruction:
+            fields.append({"instruction": instruction, "part": part})
     return fields
 
 

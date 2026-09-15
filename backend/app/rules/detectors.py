@@ -4,6 +4,7 @@ from typing import Any
 from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule
 from .errors import make_error
+from ..parser.styles import font_for_text, font_matches
 from .targets import size_to_pt, target_paragraphs, paragraph_text
 
 
@@ -35,6 +36,18 @@ def _cm_to_pt(value: Any) -> float | None:
     return float(match.group(1)) * 72 / 2.54 if match else None
 
 
+COVER_LABEL_RUN = re.compile(r"^题\s*目$")
+
+
+def _run_is_checkable(run: dict[str, Any]) -> bool:
+    text = (run.get("text") or "").strip()
+    if not text:
+        return False
+    if COVER_LABEL_RUN.fullmatch(text):
+        return False
+    return True
+
+
 def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     expected = rule.expected.get("font")
     if expected is None:
@@ -42,8 +55,10 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     errors = []
     for paragraph in _paragraphs(document, rule):
         for index, run in enumerate(paragraph.get("runs", []), start=1):
-            current = (run.get("font") or {}).get("effective")
-            if current is not None and current != expected:
+            if not _run_is_checkable(run):
+                continue
+            current = font_for_text(run.get("font") or {}, run.get("text"))
+            if current is not None and not font_matches(current, expected, run.get("text")):
                 errors.append(_format_error(rule, paragraph, current, expected, location=_run_location(paragraph, index)))
     return errors
 
@@ -137,6 +152,8 @@ def detect_size(document: Document, rule: CheckRule) -> list[ErrorItem]:
     errors = []
     for paragraph in _paragraphs(document, rule):
         for index, run in enumerate(paragraph.get("runs", []), start=1):
+            if not _run_is_checkable(run):
+                continue
             current = run.get("size_pt")
             if current is not None and float(current) != float(expected_pt):
                 errors.append(_format_error(rule, paragraph, current, expected_pt, location=_run_location(paragraph, index)))
@@ -174,6 +191,10 @@ def detect_heading_numbering(document: Document, rule: CheckRule) -> list[ErrorI
     expected_by_parent: dict[tuple[int, ...], int] = {}
     errors = []
     for paragraph in document.paragraphs:
+        if (paragraph.get("structure") == "toc") or str((paragraph.get("style") or {}).get("name") or "").lower().startswith("toc"):
+            continue
+        if (paragraph.get("location") or {}).get("part", "document") != "document":
+            continue
         parts = _heading_number_parts(paragraph)
         if parts is None:
             continue
@@ -232,7 +253,7 @@ def detect_page_margin(document: Document, rule: CheckRule) -> list[ErrorItem]:
             expected_pt = _cm_to_pt(expected)
             if current is None or expected_pt is None:
                 continue
-            if abs(float(current) - expected_pt) > 0.01:
+            if abs(float(current) - expected_pt) > 0.5:
                 errors.append(make_error(rule, location=f"section-{index}:margin-{side}", content="", current=str(current), expected=str(expected)))
         for key, expected in (("width_cm", page.get("width_cm")), ("height_cm", page.get("height_cm"))):
             current = section.get("page_width_pt" if key.startswith("width") else "page_height_pt")
@@ -307,20 +328,15 @@ def detect_page_number(document: Document, rule: CheckRule) -> list[ErrorItem]:
     pages = document.pages or []
     if not pages:
         return [make_error(rule, location="page-number", content="", current="missing", expected=str(expected_position or "page field"))]
-    seen_sections = set()
-    for page in pages:
-        section_index = page.get("section_index", 0)
-        if section_index in seen_sections:
-            continue
-        seen_sections.add(section_index)
-        current_pos = page.get("position") or "none"
-        current_fmt = page.get("number_format")
-        location = f"section-{section_index}:page-number"
-        if expected_position and expected_position not in {current_pos, "header_footer"} and current_pos != "header_footer":
-            errors.append(make_error(rule, location=location, content="", current=str(current_pos), expected=str(expected_position)))
-            continue
-        if expected_format and current_fmt != expected_format:
-            errors.append(make_error(rule, location=location, content="", current=str(current_fmt), expected=str(expected_format)))
+    if expected_position:
+        positions = {(page.get("position") or "none") for page in pages}
+        if expected_position not in positions and "header_footer" not in positions:
+            current = "none" if positions <= {"none"} else ",".join(sorted(positions))
+            errors.append(make_error(rule, location="page-number", content="", current=current, expected=str(expected_position)))
+    if expected_format:
+        numbered = [page for page in pages if (page.get("position") or "none") != "none"]
+        if numbered and not any(page.get("number_format") == expected_format for page in numbered):
+            errors.append(make_error(rule, location="page-number", content="", current=str(numbered[0].get("number_format")), expected=str(expected_format)))
     if rule.expected.get("continuous"):
         grouped: dict[Any, list[dict[str, Any]]] = {}
         for page in pages:
