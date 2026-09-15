@@ -135,6 +135,10 @@
           "appendix-title-alignment",
           "appendix-title-bold",
           "appendix-title-spacing",
+          "foreign-title-font",
+          "foreign-title-size",
+          "foreign-body-font",
+          "foreign-body-first-line-indent",
           "references-font",
           "references-size",
           "references-alignment",
@@ -609,6 +613,38 @@
       "expected": {
         "space_before_pt": 30,
         "space_after_pt": 30
+      }
+    },
+    {
+      "id": "foreign-title-font",
+      "type": "font",
+      "target": "foreign-title",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "foreign-title-size",
+      "type": "size",
+      "target": "foreign-title",
+      "expected": {
+        "size": "小三"
+      }
+    },
+    {
+      "id": "foreign-body-font",
+      "type": "font",
+      "target": "foreign-body",
+      "expected": {
+        "font": "Times New Roman"
+      }
+    },
+    {
+      "id": "foreign-body-first-line-indent",
+      "type": "paragraph_indent",
+      "target": "foreign-body",
+      "expected": {
+        "first_line_indent": "1字符"
       }
     },
     {

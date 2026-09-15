@@ -25,6 +25,14 @@ def test_default_rules_follow_cdu_page_and_heading_sizes() -> None:
     assert expected['title3-size']['size'] == '小四'
     assert expected['title4-size']['size'] == '小四'
     assert expected['toc-title-size']['size'] == '小二'
+    assert expected['body-size']['size'] == '小四'
+    assert expected['abstract-en-first-line-indent']['first_line_indent'] == '1字符'
+    assert expected['foreign-title-font']['font'] == '黑体'
+    assert expected['foreign-title-size']['size'] == '小三'
+    assert expected['foreign-body-font']['font'] == 'Times New Roman'
+    assert expected['foreign-body-first-line-indent']['first_line_indent'] == '1字符'
+    assert expected['keywords-en-format']['lowercase'] is True
+    assert expected['page-number'] == {'position': 'footer', 'continuous': True}
     types = {check.type for check in rules.checks}
     assert {'required_sections', 'caption_format', 'keyword_format', 'header_text', 'paragraph_spacing'}.issubset(types)
 

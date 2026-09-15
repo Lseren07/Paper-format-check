@@ -14,6 +14,7 @@ TITLE_PATTERNS = {
     "thanks-title": re.compile(r"^致\s*谢$"),
     "appendix-title": re.compile(r"^附\s*录"),
     "conclusion-title": re.compile(r"^结\s*论$"),
+    "foreign-title": re.compile(r"^外文资料原文$|^外文资料译文$|^译\s*文$"),
 }
 TITLE_BODY_REGION = {
     "abstract-title": "abstract-body",
@@ -23,8 +24,11 @@ TITLE_BODY_REGION = {
     "thanks-title": "thanks-body",
     "appendix-title": "appendix-body",
     "conclusion-title": "conclusion-body",
+    "foreign-title": "foreign-body",
 }
 BODY_REGIONS = {"body", "abstract-body", "thanks-body", "appendix-body", "conclusion-body"}
+KEEP_REGION_ON_HEADING = {"abstract-en-body", "foreign-body"}
+CHAPTER_RE = re.compile(r"^第[一二三四五六七八九十百零\d]+\s*章")
 KEYWORDS_ZH = re.compile(r"^关键词\s*[：:]")
 KEYWORDS_EN = re.compile(r"^Keywords\s*[：:]", re.I)
 CAPTION_RE = re.compile(r"^(图|表)\s*[\dA-Za-z]")
@@ -32,6 +36,7 @@ CHINESE_SIZES = {
     "初号": 42, "小初": 36, "一号": 26, "小一": 24, "二号": 22, "小二": 18,
     "三号": 16, "小三": 15, "四号": 14, "小四": 12, "五号": 10.5, "小五": 9,
 }
+HEADING_TARGETS = {f"title{level}" for level in range(1, 10)} | {"heading"}
 
 
 def paragraph_text(paragraph: dict[str, Any]) -> str:
@@ -74,9 +79,9 @@ def _style_name(paragraph: dict[str, Any]) -> str:
 def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
     style = _style_name(paragraph)
     text = paragraph_text(paragraph)
-    if re.match(r"^续表", text) or (text.startswith("表") and any(token in style for token in ("图注", "表注", "表题"))):
+    if re.match(r"^??", text) or (text.startswith("?") and any(token in style for token in ("??", "??", "??"))):
         return {"table_caption", "table-caption", "caption"}
-    if text and any(token in style for token in ("图注", "图题")):
+    if text and any(token in style for token in ("??", "??")):
         return {"figure_caption", "figure-caption", "caption"}
     return set()
 
@@ -84,9 +89,33 @@ def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
 def _skip_as_body(paragraph: dict[str, Any]) -> bool:
     style = _style_name(paragraph)
     text = paragraph_text(paragraph)
-    if "外文" in style:
+    if "??" in style:
         return True
-    if any(token in style for token in ("图片", "图注", "图题", "表注", "表题")):
+    if any(token in style for token in ("??", "??", "??", "??", "??")):
+        return True
+    if paragraph.get("drawings") and not text:
+        return True
+    if not text:
+        return True
+    return False
+
+
+def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
+    style = _style_name(paragraph)
+    text = paragraph_text(paragraph)
+    if re.match(r"^\u7eed\u8868", text) or (text.startswith("\u8868") and any(token in style for token in ("\u56fe\u6ce8", "\u8868\u6ce8", "\u8868\u9898"))):
+        return {"table_caption", "table-caption", "caption"}
+    if text and any(token in style for token in ("\u56fe\u6ce8", "\u56fe\u9898")):
+        return {"figure_caption", "figure-caption", "caption"}
+    return set()
+
+
+def _skip_as_body(paragraph: dict[str, Any]) -> bool:
+    style = _style_name(paragraph)
+    text = paragraph_text(paragraph)
+    if "\u5916\u6587" in style:
+        return True
+    if any(token in style for token in ("\u56fe\u7247", "\u56fe\u6ce8", "\u56fe\u9898", "\u8868\u6ce8", "\u8868\u9898")):
         return True
     if paragraph.get("drawings") and not text:
         return True
@@ -118,14 +147,17 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
             elif KEYWORDS_EN.match(text):
                 assigned.add("keywords-en")
             elif CAPTION_RE.match(text):
-                assigned.add("figure-caption" if text.startswith("图") else "table-caption")
+                assigned.add("figure-caption" if text.startswith("\u56fe") else "table-caption")
                 assigned.add("caption")
             else:
                 level = (paragraph.get("heading") or {}).get("level") or heading_level_from_style((paragraph.get("style") or {}).get("name"))
                 if level:
-                    assigned.add(f"title{level}")
-                    assigned.add("heading")
-                    region = "body"
+                    if region in KEEP_REGION_ON_HEADING and not CHAPTER_RE.match(text):
+                        assigned = set()
+                    else:
+                        assigned.add(f"title{level}")
+                        assigned.add("heading")
+                        region = "body"
                 else:
                     assigned.add(region)
                     if region in BODY_REGIONS:
@@ -152,16 +184,24 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
             elif _skip_as_body(paragraph):
                 assigned = set()
             elif level:
-                assigned = {f"title{level}", "heading"}
-                if level == 1:
-                    seen_chapter = True
+                if region in KEEP_REGION_ON_HEADING and not CHAPTER_RE.match(paragraph_text(paragraph)):
+                    assigned = set()
+                else:
+                    assigned = {f"title{level}", "heading"}
+                    if level == 1:
+                        seen_chapter = True
             else:
                 assigned.discard("toc-body")
                 if seen_chapter:
                     assigned.difference_update({"abstract-title", "abstract-en-title"})
                 if not assigned:
                     assigned = {"body"}
-            region = "body"
+            if assigned and level and not (region in KEEP_REGION_ON_HEADING and not CHAPTER_RE.match(paragraph_text(paragraph))):
+                region = "body"
+        elif structure == "abstract_en":
+            assigned = {"abstract-en-title" if role == "title" else "abstract-en-body"}
+        elif structure == "foreign":
+            assigned = {"foreign-title" if role == "title" else "foreign-body"}
         elif structure == "figure_caption":
             assigned = {"figure_caption", "figure-caption", "caption"}
         elif structure == "table_caption":
