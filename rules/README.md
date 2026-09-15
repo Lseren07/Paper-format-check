@@ -2,9 +2,64 @@
 
 此目录保存由《电子科技大学成都学院毕业论文（设计）撰写格式规范》（附件1）、相关表格（附件2）和撰写示范（附件3）整理出的 JSON 规则。
 
-规则文件使用 `schema_version`、`name` 和 `checks`。每个检查项包含唯一 `id`、检测器 `type`、可选 `target`、`expected` 期望值和可选 `enabled` 开关。
+规则文件使用 `schema_version`、`name`、`source` 和 `checks`。每个检查项包含唯一 `id`、检测器 `type`、可选 `target`、`expected` 期望值和可选 `enabled` 开关。
 
-当前产品只加载一套规则：`default.json`。加载、校验和执行入口为 `backend.app.rules.loader.load_rules` 与 `backend.app.rules.service.check_document`。旧文件 `electronic-tech-cdu-v1.json` 仅作历史对照，不再作为运行时规则。
+### source：规范来源（必填建议）
+
+`source` 说明这套 `checks` 依据哪份文件的哪些条款，是 PDF 报告「检测依据」章节与 `/api/v1/report/create` 响应中 `rule_source` 的唯一数据来源：
+
+```json
+"source": {
+  "title": "规范全称",
+  "document": "附件1：……撰写格式规范.docx",
+  "organization": "发布单位",
+  "scope": "本科毕业论文（设计）",
+  "clauses": [
+    {
+      "id": "body",
+      "title": "正文主体与章节标题",
+      "chapter": "三、论文排版（一）正文部分",
+      "text": "条款摘要原文……",
+      "rules": ["body-font", "body-size"],
+      "automated": true
+    }
+  ],
+  "notes": ["仅供人工核对的提示"]
+}
+```
+
+- `clauses[].rules` 用**规则 id** 声明该条款由哪些检查项实现，全部启用的检查项都应被某条条款引用（`unmapped_rule_ids()` 为空），否则报告里的条款覆盖情况会失真。
+- `automated: false` 表示规范有要求但机器不判定（如字数、查重率），报告中会归入「人工核对提示」。
+- 旧写法里 `source` 可以是只写文件名的字符串，加载时会自动转成对象（`title` 取规则集名称）。
+
+当前 `default.json` 的条款全部来自《电子科技大学成都学院毕业论文（设计）撰写格式规范》（附件1）及其四张排版表（文首部分、正文部分、文尾部分、纸张规格），本身不引用附件2（教务表格）与附件3（撰写示范）的内容。
+
+## 规则集注册表（目录扫描 + 可配置）
+
+`rules/` 下的每个 `*.json` 都是一个可独立选择的规则集，由 `backend.app.rules.registry` 扫描登记：
+
+| 配置项 | 环境变量 | 默认值 |
+| --- | --- | --- |
+| 规则目录 | `PAPER_RULES_DIR` | 仓库根 `rules/` |
+| 默认规则集 | `PAPER_RULES_DEFAULT` | `default` |
+
+- **id 解析**：优先取文件里的 `rule_set_id`，缺省回退到文件名（不含扩展名）。
+- **可选列表**：`GET /api/v1/rule/list`，单项详情 `GET /api/v1/rule/{rule_set_id}`。
+- **单次检测指定**：`POST /api/v1/detect/start` 传 `rule_set_id`；不传则用 `PAPER_RULES_DEFAULT`。任务会记住所用规则集（`TaskRecord.rule_set_id`），报告据此复述「检测依据」。
+- 新增一个学校的规范只要往目录里放一个 JSON 即可，无需改代码；`_`-/`.`-开头的文件与 `*.schema.json` 不参与扫描。
+- 单个文件损坏时只在列表中标记 `loadable=false` 与 `error`，不会拖垮整个目录（测试 `test_every_repo_rule_file_is_loadable` 会守住「仓库内不允许有坏文件」）。
+
+已登记的规则集：
+
+| id | 文件 | 说明 |
+| --- | --- | --- |
+| `default` | `default.json` | 现行唯一规则集，含 92 项检查与 `source.clauses` 条款追溯 |
+
+> 旧版 `electronic-tech-cdu-v1.json` 已删除，不再维护；现行规则一律写在 `default.json`。
+> 加载器仍保留对旧结构（`page`/`body`/`headings`/`manual_checks`，没有 `checks` 字段）的翻译能力，
+> 便于直接接入历史格式的文件：`manual_checks` 会落到 `source.notes` 作为人工核对提示。
+
+加载、校验和执行入口为 `backend.app.rules.loader.load_rules`、`backend.app.rules.registry` 与 `backend.app.rules.service.check_document`。
 
 ## 自动检测项
 

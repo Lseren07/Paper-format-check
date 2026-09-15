@@ -15,6 +15,7 @@ class TaskRecord:
     errors: list[ErrorItem] = field(default_factory=list)
     document: Document | None = None
     message: str = ""
+    rule_set_id: str | None = None
 
 
 class TaskStore:
@@ -27,6 +28,9 @@ class TaskStore:
 
     def get(self, task_id: str) -> TaskRecord | None:
         return self._tasks.get(task_id)
+
+    def delete(self, task_id: str) -> TaskRecord | None:
+        return self._tasks.pop(task_id, None)
 
 
 store = TaskStore()

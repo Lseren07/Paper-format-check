@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ..parser.errors import DocumentParseError
+from ..rules.registry import RuleSetNotFoundError, resolve_rule_set
 from ..services.pipeline import run_detection
 from ..services.task_store import TaskRecord, store
 from . import upload
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/detect", tags=["detect"])
 
 class DetectStartRequest(BaseModel):
     task_id: str = Field(min_length=1)
+    rule_set_id: str | None = None
 
 
 def _task_file(task_id: str):
@@ -36,13 +38,19 @@ def start_detect(payload: DetectStartRequest) -> dict:
     if task is None:
         task = store.put(TaskRecord(task_id=payload.task_id, filename=path.name, size=path.stat().st_size))
 
+    try:
+        resolved = resolve_rule_set(payload.rule_set_id)
+    except RuleSetNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
     task.status = "detecting"
     task.progress = 50
+    task.rule_set_id = resolved.info.id
     # 清除上一次成功检测的缓存，避免本次解析失败时分析接口返回过期文档。
     task.document = None
     task.errors = []
     try:
-        task.document, task.errors = run_detection(path, document_id=payload.task_id, source_filename=task.filename)
+        task.document, task.errors = run_detection(path, document_id=payload.task_id, source_filename=task.filename, rule_set=resolved.rules)
     except DocumentParseError:
         task.status = "failed"
         task.progress = 100
@@ -58,7 +66,7 @@ def start_detect(payload: DetectStartRequest) -> dict:
     return {
         "code": 200,
         "message": "检测任务创建成功",
-        "data": {"task_id": payload.task_id, "status": task.status},
+        "data": {"task_id": payload.task_id, "status": task.status, "rule_set_id": task.rule_set_id},
     }
 
 
@@ -87,6 +95,7 @@ def detect_result(task_id: str) -> dict:
             "task_id": task.task_id,
             "filename": task.filename,
             "status": task.status,
+            "rule_set_id": task.rule_set_id,
             "total_error": len(errors),
             "errors": errors,
         },

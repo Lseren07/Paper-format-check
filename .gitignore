@@ -31,7 +31,13 @@ Thumbs.db
 .docx-qa-demo/
 .pytest-tmp-*/
 .pytest-tmp/
+pytest-cache-files-*/
+.tmp-*.txt
 debug.log
+
+# 本地生成的示例报告与智能体工作目录
+docs/示例报告_*.pdf
+.workbuddy/
 
 # Local planning documents are maintained outside the shared dev branch.
 论文格式检测系统开发分工方案.md
