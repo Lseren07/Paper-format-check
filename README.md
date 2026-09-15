@@ -14,6 +14,14 @@
 - TypeScript 5.x
 - Vite 6.x
 
+仓库根目录的 `.nvmrc` 固定了 Node 20。用 [fnm](https://github.com/Schniz/fnm) 进入本目录时会自动切换版本，避免和系统里的其他 Node 混淆：
+
+```bash
+fnm install 20                                    # 只需执行一次
+eval "$(fnm env --use-on-cd --shell bash)"         # Git Bash，写进 ~/.bashrc
+fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression   # PowerShell，写进 $PROFILE
+```
+
 ## 初始化后端
 
 ```powershell
