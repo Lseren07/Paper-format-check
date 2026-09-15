@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 
 from backend.app.api import upload
 from backend.app.main import app
+from backend.app.rules.engine import DETECTORS
+from backend.app.rules.errors import error_type_for
 from backend.app.services import report as report_service
 from backend.app.services.task_store import TaskRecord, store
 
@@ -83,3 +85,13 @@ def test_download_report_rejects_unknown_report(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(report_service, "REPORT_DIR", tmp_path)
     response = TestClient(app).get("/api/v1/report/download/Rmissing")
     assert response.status_code == 404
+
+
+def test_every_detector_type_has_a_chinese_label() -> None:
+    """引擎能产出的每种错误类型都要有中文名，否则报告的类型列会漏出英文原始 type。"""
+    missing = sorted(
+        error_type
+        for rule_type in DETECTORS
+        if (error_type := error_type_for(rule_type)) not in report_service.ERROR_TYPE_LABELS
+    )
+    assert missing == []

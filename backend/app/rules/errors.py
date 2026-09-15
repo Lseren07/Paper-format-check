@@ -9,10 +9,18 @@ _ERROR_TYPES = {
 }
 
 
+def error_type_for(rule_type: str) -> str:
+    """规则类型 → 对外错误类型（如 ``font`` → ``font_error``）。
+
+    展示层（PDF 报告、前端标签）按这个结果查中文名，新增检测器时两边都要补。
+    """
+    return _ERROR_TYPES.get(rule_type, f"{rule_type}_error")
+
+
 def make_error(rule: CheckRule, *, location: str, content: str, current: str, expected: str) -> ErrorItem:
     return ErrorItem(
         error_id=f"{rule.id}:{location}",
-        type=_ERROR_TYPES.get(rule.type, f"{rule.type}_error"),
+        type=error_type_for(rule.type),
         location=location,
         content=content,
         current=current,

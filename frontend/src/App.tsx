@@ -18,19 +18,24 @@ type DetectResult = {
   errors: ErrorItem[];
 };
 
-const ERROR_TYPE_LABELS: Record<string, string> = {
+export const ERROR_TYPE_LABELS: Record<string, string> = {
   font_error: "字体错误",
   size_error: "字号错误",
   bold_error: "加粗错误",
   alignment_error: "对齐错误",
   line_spacing_error: "行距错误",
   paragraph_indent_error: "缩进错误",
+  paragraph_spacing_error: "段落间距错误",
   heading_numbering_error: "标题编号错误",
   toc_consistency_error: "目录一致性错误",
   table_figure_format_error: "图表格式错误",
   reference_baseline_error: "参考文献格式错误",
   page_margin_error: "页边距错误",
+  required_sections_error: "必备结构缺失",
+  keyword_format_error: "关键词格式错误",
+  caption_format_error: "题注格式错误",
   caption_position_error: "题注位置错误",
+  header_text_error: "页眉文字错误",
   page_number_error: "页码错误",
 };
 

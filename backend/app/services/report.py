@@ -61,6 +61,9 @@ ERROR_TYPE_LABELS = {
     "caption_format_error": "图/表题格式",
     "header_text_error": "页眉文本",
     "reference_baseline_error": "参考文献序号",
+    "table_figure_format_error": "图/表格式",
+    "caption_position_error": "题注位置",
+    "page_number_error": "页码",
 }
 
 
