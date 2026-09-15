@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Expose parsed document structure for a completed detection task through `GET /api/v1/document/analysis/{task_id}`.
+**Goal:** Expose the detected formatting of a completed detection task through `GET /api/v1/document/analysis/{task_id}`.
 
-**Architecture:** Store the parsed `Document` alongside detection errors in the in-memory `TaskRecord`. The detection pipeline returns both the parsed document and relocated errors, while the existing result endpoint remains backward compatible. A dedicated analysis router reads the task record and returns the stable `Document` contract.
+**Architecture:** Store the parsed `Document` alongside detection errors in the in-memory `TaskRecord`. The detection pipeline returns both the parsed document and relocated errors, while the existing result endpoint remains backward compatible. A dedicated analysis router reads the task record and returns a **format summary** (page margins, body and title font/size/line spacing); the raw `Document` is never serialized to clients because `paragraphs[].text` carries the full student paper.
 
 **Tech Stack:** FastAPI, Pydantic, Python, pytest.
 
@@ -40,7 +40,7 @@
 
 - [ ] **Step 1: Write failing endpoint tests for completed, missing, incomplete, and failed tasks.**
 - [ ] **Step 2: Run the focused tests and confirm the route is missing.**
-- [ ] **Step 3: Implement the router and register it under `/api/v1`; return `{code, message, data: {task_id, filename, status, document}}`.**
+- [x] **Step 3: Implement the router and register it under `/api/v1`; return `{code, message, data: {task_id, filename, status, page, body, title}}` — a format summary per 接口设计文档 §7.1, never exposing paper text.**
 - [ ] **Step 4: Run all backend tests.**
 
 ### Task 3: Self-Review and Verification
