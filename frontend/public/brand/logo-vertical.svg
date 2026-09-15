@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 192" width="160" height="192" role="img" aria-label="师鉴通 SHIJIANTONG">
+  <title>师鉴通 · 竖版标准组合</title>
+  <g fill="none" stroke-linecap="round">
+    <path d="M59.7 24.5 A 48 48 0 1 0 100.3 24.5" stroke="#23282B" stroke-width="3.1"/>
+    <line x1="72.8" y1="38" x2="104" y2="38" stroke="#A8A59C" stroke-width="2"/>
+    <line x1="60.8" y1="53" x2="120.8" y2="53" stroke="#A8A59C" stroke-width="2"/>
+    <line x1="40.4" y1="68" x2="74.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+    <line x1="85.4" y1="68" x2="119.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+    <line x1="40.4" y1="83" x2="119.6" y2="83" stroke="#23282B" stroke-width="2.6"/>
+    <line x1="47.6" y1="98" x2="92" y2="98" stroke="#23282B" stroke-width="2.6"/>
+  </g>
+  <circle cx="80" cy="68" r="5.7" fill="#0F6E56"/>
+  <line x1="68" y1="130" x2="92" y2="130" stroke="#0F6E56" stroke-width="1.4"/>
+  <text x="82.4" y="158" text-anchor="middle" font-family="'Source Han Serif SC','Noto Serif SC',SimSun,serif" font-size="30" font-weight="500" letter-spacing="4.8" fill="#23282B">师鉴通</text>
+  <text x="81.9" y="179" text-anchor="middle" font-family="Inter,'Helvetica Neue',Arial,sans-serif" font-size="9.5" letter-spacing="3.8" fill="#0F6E56">SHIJIANTONG</text>
+</svg>

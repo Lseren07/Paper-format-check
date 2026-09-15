@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 
-from .api.detect import router as detect_router
 from .api.analysis import router as analysis_router
+from .api.detect import router as detect_router
+from .api.report import router as report_router
+from .api.rules import router as rules_router
+from .api.task import router as task_router
 from .api.upload import router as upload_router
 
 
@@ -14,7 +17,10 @@ app = FastAPI(
 # 挂载上传路由：给整组接口统一加上 /api/v1 版本前缀
 app.include_router(upload_router, prefix="/api/v1")
 app.include_router(detect_router, prefix="/api/v1")
+app.include_router(report_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
+app.include_router(task_router, prefix="/api/v1")
+app.include_router(rules_router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")

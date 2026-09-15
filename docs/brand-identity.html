@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>师鉴通 · 品牌标识规范 V1.0</title>
+<style>
+:root{
+  --ink:#23282B; --paper:#F4F2EC; --jade:#0F6E56; --celadon:#8FB8AE;
+  --vermilion:#B23A2E; --gray:#A8A59C; --card:#FAF8F3;
+  --serif:"Source Han Serif SC","Noto Serif SC","Songti SC",SimSun,serif;
+  --sans:Inter,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:56px 40px 80px}
+header{border-bottom:1px solid rgba(35,40,43,.14);padding-bottom:28px;margin-bottom:48px}
+.brandline{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+h1{font-family:var(--serif);font-size:38px;font-weight:500;letter-spacing:.12em}
+.sub{font-size:11px;letter-spacing:.32em;color:var(--jade);margin-top:10px}
+.meta{font-size:12px;color:#7A7A76;line-height:1.9;text-align:right}
+section{margin-bottom:56px}
+.num{font-size:11px;letter-spacing:.3em;color:var(--gray);margin-bottom:6px}
+h2{font-family:var(--serif);font-size:20px;font-weight:500;letter-spacing:.1em;margin-bottom:20px}
+.note{font-size:13px;color:#6E6E69;line-height:1.8;max-width:640px;margin-top:16px}
+.stage{background:var(--card);border:1px solid rgba(35,40,43,.08);border-radius:16px;padding:56px;display:flex;align-items:center;justify-content:center}
+.stage.dark{background:var(--ink)}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.tile{background:var(--card);border:1px solid rgba(35,40,43,.08);border-radius:14px;padding:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:150px}
+.tile.dark{background:var(--ink)}
+.cap{font-size:11px;letter-spacing:.14em;color:#8A8A85}
+.tile.dark .cap{color:#8A918F}
+.sw{height:76px;border-radius:10px}
+.swl{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px}
+.swl b{font-weight:500;font-size:13px}
+.swl span{font-size:11px;color:#8A8A85;font-family:ui-monospace,monospace}
+.sizes{display:flex;align-items:center;gap:40px;flex-wrap:wrap;justify-content:center}
+.clear{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.clear .box{background:var(--card);border:1px solid rgba(35,40,43,.08);border-radius:14px;padding:26px;text-align:center}
+.clear .box.bad{position:relative;opacity:.85}
+.tag{font-size:11px;letter-spacing:.12em;margin-top:14px}
+.tag.no{color:var(--vermilion)}
+.tag.yes{color:var(--jade)}
+.appgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.phone{background:#fff;border:1px solid rgba(35,40,43,.1);border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:18px;min-height:300px;justify-content:center}
+.drop{width:100%;border:1.5px dashed rgba(15,110,86,.35);border-radius:12px;padding:22px;text-align:center;color:var(--jade);font-size:12px;background:rgba(15,110,86,.04)}
+.slogan{font-family:var(--serif);font-size:14px;letter-spacing:.22em;color:#5A5A55}
+.a4{background:#fff;border:1px solid rgba(35,40,43,.1);border-radius:6px;padding:26px 24px;min-height:300px;display:flex;flex-direction:column}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid rgba(35,40,43,.12)}
+.hdr .rt{font-size:9px;letter-spacing:.1em;color:#8A8A85;text-align:right;line-height:1.7}
+.rows{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+.row{height:7px;border-radius:2px;background:#EAE7DE}
+.row.s{width:62%}
+.row.j{background:rgba(15,110,86,.5)}
+@keyframes scanUp{0%{transform:translateY(-96px)}12%{transform:translateY(-96px)}72%{transform:translateY(0)}100%{transform:translateY(0)}}
+@keyframes scanDown{0%{transform:translateY(0)}12%{transform:translateY(0)}72%{transform:translateY(96px)}100%{transform:translateY(96px)}}
+#clipInk,#clipGray,#scanBar{transform-origin:center}
+#clipInk{animation:scanUp 2.6s cubic-bezier(.4,0,.2,1) infinite}
+#clipGray{animation:scanDown 2.6s cubic-bezier(.4,0,.2,1) infinite}
+#scanBar{animation:scanDown 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@media (prefers-reduced-motion:reduce){#clipInk,#clipGray,#scanBar{animation:none}#clipGray{transform:translateY(96px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brandline">
+    <div>
+      <h1>师鉴通</h1>
+      <div class="sub">BRAND IDENTITY GUIDELINE</div>
+    </div>
+    <div class="meta">版本 V1.0 · 2026<br>主方向 A · 明镜 THE MIRROR</div>
+  </div>
+</header>
+
+<section>
+  <div class="num">01</div>
+  <h2>主标识</h2>
+  <div class="stage">
+    <svg width="200" height="200" viewBox="0 0 96 96" role="img" aria-label="师鉴通主标识">
+      <g fill="none" stroke-linecap="round">
+        <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke="#23282B" stroke-width="2.6"/>
+        <line x1="42" y1="23" x2="68" y2="23" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="32" y1="35.5" x2="82" y2="35.5" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="15" y1="48" x2="42" y2="48" stroke="#23282B" stroke-width="2.6"/>
+        <line x1="54" y1="48" x2="81" y2="48" stroke="#23282B" stroke-width="2.6"/>
+        <line x1="15" y1="60.5" x2="81" y2="60.5" stroke="#23282B" stroke-width="2.2"/>
+        <line x1="21" y1="73" x2="58" y2="73" stroke="#23282B" stroke-width="2.2"/>
+      </g>
+      <circle cx="48" cy="48" r="4.8" fill="#0F6E56"/>
+    </svg>
+  </div>
+  <p class="note">正圆取「鉴」之本义——青铜镜。圆内上半为未经校对的论文文本行（浅灰、参差错位），穿过中心镜面线后归为等长对齐（墨黑）。圆心一点鉴青为镜钮，是全标识唯一的彩色。圆顶部留 24° 缺口，闭合的圆是完成，开口的圆是照见。</p>
+</section>
+
+<section>
+  <div class="num">02</div>
+  <h2>动态标识 · 鉴</h2>
+  <div class="stage">
+    <svg width="200" height="200" viewBox="0 0 96 96" role="img" aria-label="师鉴通检测动效">
+      <defs>
+        <clipPath id="mirrorClip"><circle cx="48" cy="48" r="38"/></clipPath>
+        <clipPath id="clipInkPath"><rect id="clipInk" x="0" y="0" width="96" height="96"/></clipPath>
+        <clipPath id="clipGrayPath"><rect id="clipGray" x="0" y="0" width="96" height="96"/></clipPath>
+      </defs>
+      <g fill="none" stroke-linecap="round" clip-path="url(#clipGrayPath)">
+        <line x1="42" y1="23" x2="68" y2="23" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="32" y1="35.5" x2="82" y2="35.5" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="15" y1="48" x2="42" y2="48" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="54" y1="48" x2="81" y2="48" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="15" y1="60.5" x2="81" y2="60.5" stroke="#A8A59C" stroke-width="1.7"/>
+        <line x1="21" y1="73" x2="58" y2="73" stroke="#A8A59C" stroke-width="1.7"/>
+      </g>
+      <g fill="none" stroke-linecap="round" clip-path="url(#clipInkPath)">
+        <line x1="42" y1="23" x2="68" y2="23" stroke="#23282B" stroke-width="1.7"/>
+        <line x1="32" y1="35.5" x2="82" y2="35.5" stroke="#23282B" stroke-width="1.7"/>
+        <line x1="15" y1="48" x2="42" y2="48" stroke="#23282B" stroke-width="2.6"/>
+        <line x1="54" y1="48" x2="81" y2="48" stroke="#23282B" stroke-width="2.6"/>
+        <line x1="15" y1="60.5" x2="81" y2="60.5" stroke="#23282B" stroke-width="2.2"/>
+        <line x1="21" y1="73" x2="58" y2="73" stroke="#23282B" stroke-width="2.2"/>
+      </g>
+      <g clip-path="url(#mirrorClip)"><line id="scanBar" x1="4" y1="0" x2="92" y2="0" stroke="#0F6E56" stroke-width="2.2" stroke-linecap="round"/></g>
+      <circle cx="48" cy="48" r="4.8" fill="#0F6E56"/>
+      <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" fill="none" stroke="#23282B" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <p class="note">检测进行中：一条青色镜面线自上而下扫过，扫过的文本行由浅灰转为墨黑——「鉴」的过程被直接可视化。这是静态竞品给不了的记忆点，建议用作上传解析时的加载状态。</p>
+</section>
+
+<section>
+  <div class="num">03</div>
+  <h2>色彩</h2>
+  <div class="grid g4">
+    <div><div class="sw" style="background:#0F6E56"></div><div class="swl"><b>鉴青</b><span>#0F6E56</span></div></div>
+    <div><div class="sw" style="background:#23282B"></div><div class="swl"><b>玄墨</b><span>#23282B</span></div></div>
+    <div><div class="sw" style="background:#F4F2EC;border:1px solid rgba(35,40,43,.12)"></div><div class="swl"><b>宣纸</b><span>#F4F2EC</span></div></div>
+    <div><div class="sw" style="background:#8FB8AE"></div><div class="swl"><b>青瓷</b><span>#8FB8AE</span></div></div>
+  </div>
+  <p class="note">朱批红 #B23A2E 仅用于界面中的错误标记与未通过状态，<b>严禁进入标识</b>——一旦进入，品牌会立刻掉进「批改作业」的俗套。标识有彩色时只用鉴青，且只用在镜钮。</p>
+</section>
+
+<section>
+  <div class="num">04</div>
+  <h2>标准组合</h2>
+  <div class="grid g3">
+    <div class="tile">
+      <svg width="180" height="71" viewBox="0 0 224 88" role="img" aria-label="横版">
+        <g fill="none" stroke-linecap="round">
+          <path d="M26.48 15 A 32 32 0 1 0 53.52 15" stroke="#23282B" stroke-width="2.2"/>
+          <line x1="35.2" y1="24" x2="56" y2="24" stroke="#A8A59C" stroke-width="1.4"/>
+          <line x1="27.2" y1="34" x2="66" y2="34" stroke="#A8A59C" stroke-width="1.4"/>
+          <line x1="13.6" y1="44" x2="36.4" y2="44" stroke="#23282B" stroke-width="2.2"/>
+          <line x1="43.6" y1="44" x2="66.4" y2="44" stroke="#23282B" stroke-width="2.2"/>
+          <line x1="13.6" y1="54" x2="66.4" y2="54" stroke="#23282B" stroke-width="1.9"/>
+          <line x1="18.4" y1="64" x2="48" y2="64" stroke="#23282B" stroke-width="1.9"/>
+        </g>
+        <circle cx="40" cy="44" r="3.8" fill="#0F6E56"/>
+        <text x="92" y="46" font-family="var(--serif)" font-size="30" font-weight="500" letter-spacing="4.8" fill="#23282B">师鉴通</text>
+        <text x="93" y="67" font-family="var(--sans)" font-size="9.5" letter-spacing="3.8" fill="#0F6E56">SHIJIANTONG</text>
+      </svg>
+      <div class="cap">横版 · 主用</div>
+    </div>
+    <div class="tile">
+      <svg width="100" height="120" viewBox="0 0 160 192" role="img" aria-label="竖版">
+        <g fill="none" stroke-linecap="round">
+          <path d="M59.7 24.5 A 48 48 0 1 0 100.3 24.5" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="72.8" y1="38" x2="104" y2="38" stroke="#A8A59C" stroke-width="2"/>
+          <line x1="60.8" y1="53" x2="120.8" y2="53" stroke="#A8A59C" stroke-width="2"/>
+          <line x1="40.4" y1="68" x2="74.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="85.4" y1="68" x2="119.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="40.4" y1="83" x2="119.6" y2="83" stroke="#23282B" stroke-width="2.6"/>
+          <line x1="47.6" y1="98" x2="92" y2="98" stroke="#23282B" stroke-width="2.6"/>
+        </g>
+        <circle cx="80" cy="68" r="5.7" fill="#0F6E56"/>
+        <line x1="68" y1="130" x2="92" y2="130" stroke="#0F6E56" stroke-width="1.4"/>
+        <text x="82.4" y="158" text-anchor="middle" font-family="var(--serif)" font-size="30" font-weight="500" letter-spacing="4.8" fill="#23282B">师鉴通</text>
+        <text x="81.9" y="179" text-anchor="middle" font-family="var(--sans)" font-size="9.5" letter-spacing="3.8" fill="#0F6E56">SHIJIANTONG</text>
+      </svg>
+      <div class="cap">竖版 · 登录页</div>
+    </div>
+    <div class="tile dark">
+      <svg width="180" height="71" viewBox="0 0 224 88" role="img" aria-label="反白">
+        <g fill="none" stroke="#F4F2EC" stroke-linecap="round">
+          <path d="M26.48 15 A 32 32 0 1 0 53.52 15" stroke-width="2.2"/>
+          <line x1="35.2" y1="24" x2="56" y2="24" stroke-width="1.4" opacity=".42"/>
+          <line x1="27.2" y1="34" x2="66" y2="34" stroke-width="1.4" opacity=".42"/>
+          <line x1="13.6" y1="44" x2="36.4" y2="44" stroke-width="2.2"/>
+          <line x1="43.6" y1="44" x2="66.4" y2="44" stroke-width="2.2"/>
+          <line x1="13.6" y1="54" x2="66.4" y2="54" stroke-width="1.9"/>
+          <line x1="18.4" y1="64" x2="48" y2="64" stroke-width="1.9"/>
+        </g>
+        <circle cx="40" cy="44" r="3.8" fill="#5DCAA5"/>
+        <text x="92" y="46" font-family="var(--serif)" font-size="30" font-weight="500" letter-spacing="4.8" fill="#F4F2EC">师鉴通</text>
+        <text x="93" y="67" font-family="var(--sans)" font-size="9.5" letter-spacing="3.8" fill="#5DCAA5">SHIJIANTONG</text>
+      </svg>
+      <div class="cap">反白 · 深色底</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">05</div>
+  <h2>最小尺寸与单色</h2>
+  <div class="stage">
+    <div class="sizes">
+      <div style="text-align:center">
+        <svg width="16" height="16" viewBox="0 0 32 32" role="img" aria-label="16px">
+          <g fill="none" stroke="#23282B" stroke-linecap="round">
+            <path d="M10.08 3.31 A 14 14 0 1 0 21.92 3.31" stroke-width="2.8"/>
+            <line x1="3.5" y1="16" x2="13.2" y2="16" stroke-width="2.8"/>
+            <line x1="18.8" y1="16" x2="28.5" y2="16" stroke-width="2.8"/>
+            <line x1="4" y1="20.5" x2="28" y2="20.5" stroke-width="2.6"/>
+          </g>
+          <circle cx="16" cy="16" r="2.6" fill="#0F6E56"/>
+        </svg>
+        <div class="cap" style="margin-top:12px">16 px</div>
+      </div>
+      <div style="text-align:center">
+        <svg width="24" height="24" viewBox="0 0 32 32" role="img" aria-label="24px">
+          <g fill="none" stroke="#23282B" stroke-linecap="round">
+            <path d="M10.08 3.31 A 14 14 0 1 0 21.92 3.31" stroke-width="2.8"/>
+            <line x1="11" y1="11.5" x2="27" y2="11.5" stroke-width="2.2" opacity=".4"/>
+            <line x1="3.5" y1="16" x2="13.2" y2="16" stroke-width="2.8"/>
+            <line x1="18.8" y1="16" x2="28.5" y2="16" stroke-width="2.8"/>
+            <line x1="4" y1="20.5" x2="28" y2="20.5" stroke-width="2.6"/>
+          </g>
+          <circle cx="16" cy="16" r="2.6" fill="#0F6E56"/>
+        </svg>
+        <div class="cap" style="margin-top:12px">24 px</div>
+      </div>
+      <div style="text-align:center">
+        <svg width="40" height="40" viewBox="0 0 96 96" role="img" aria-label="40px">
+          <g fill="none" stroke-linecap="round">
+            <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke="#23282B" stroke-width="2.6"/>
+            <line x1="32" y1="35.5" x2="82" y2="35.5" stroke="#A8A59C" stroke-width="1.7"/>
+            <line x1="15" y1="48" x2="42" y2="48" stroke="#23282B" stroke-width="2.6"/>
+            <line x1="54" y1="48" x2="81" y2="48" stroke="#23282B" stroke-width="2.6"/>
+            <line x1="15" y1="60.5" x2="81" y2="60.5" stroke="#23282B" stroke-width="2.2"/>
+          </g>
+          <circle cx="48" cy="48" r="4.8" fill="#0F6E56"/>
+        </svg>
+        <div class="cap" style="margin-top:12px">40 px</div>
+      </div>
+      <div style="text-align:center">
+        <svg width="56" height="56" viewBox="0 0 96 96" role="img" aria-label="单色">
+          <g fill="none" stroke="#23282B" stroke-linecap="round">
+            <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke-width="2.6"/>
+            <line x1="42" y1="23" x2="68" y2="23" stroke-width="1.7" opacity=".4"/>
+            <line x1="32" y1="35.5" x2="82" y2="35.5" stroke-width="1.7" opacity=".4"/>
+            <line x1="15" y1="48" x2="42" y2="48" stroke-width="2.6"/>
+            <line x1="54" y1="48" x2="81" y2="48" stroke-width="2.6"/>
+            <line x1="15" y1="60.5" x2="81" y2="60.5" stroke-width="2.2"/>
+            <line x1="21" y1="73" x2="58" y2="73" stroke-width="2.2"/>
+          </g>
+          <circle cx="48" cy="48" r="4.8" fill="#23282B"/>
+        </svg>
+        <div class="cap" style="margin-top:12px">单色 · 印章/印章位</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">16px 起逐级简化内部线条（去掉最上一行、末行），但圆与镜钮任何尺寸下都不得被牺牲——它们是识别的全部底线。安全留白不小于镜钮直径。</p>
+</section>
+
+<section>
+  <div class="num">06</div>
+  <h2>应用示意</h2>
+  <div class="appgrid">
+    <div class="a4">
+      <div class="hdr">
+        <svg width="26" height="26" viewBox="0 0 96 96" role="img" aria-label="标识">
+          <g fill="none" stroke-linecap="round">
+            <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke="#23282B" stroke-width="3"/>
+            <line x1="15" y1="48" x2="42" y2="48" stroke="#23282B" stroke-width="3"/>
+            <line x1="54" y1="48" x2="81" y2="48" stroke="#23282B" stroke-width="3"/>
+            <line x1="15" y1="60.5" x2="81" y2="60.5" stroke="#23282B" stroke-width="2.6"/>
+          </g>
+          <circle cx="48" cy="48" r="5" fill="#0F6E56"/>
+        </svg>
+        <div class="rt">毕业论文格式检测报告<br>DOCUMENT FORMAT REPORT</div>
+      </div>
+      <div style="font-family:var(--serif);font-size:15px;letter-spacing:.08em;margin-top:18px">基于深度学习的图像识别研究</div>
+      <div class="rows" style="margin-top:18px">
+        <div class="row"></div><div class="row"></div><div class="row s"></div>
+        <div class="row j" style="width:78%;margin-top:8px"></div><div class="row" style="width:88%"></div>
+        <div class="row s"></div><div class="row"></div><div class="row" style="width:70%"></div>
+      </div>
+      <div style="margin-top:auto;padding-top:16px;font-size:10px;color:#A8A59C;letter-spacing:.1em">师鉴通 · SHIJIANTONG</div>
+    </div>
+    <div class="phone">
+      <svg width="86" height="103" viewBox="0 0 160 192" role="img" aria-label="竖版">
+        <g fill="none" stroke-linecap="round">
+          <path d="M59.7 24.5 A 48 48 0 1 0 100.3 24.5" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="72.8" y1="38" x2="104" y2="38" stroke="#A8A59C" stroke-width="2"/>
+          <line x1="60.8" y1="53" x2="120.8" y2="53" stroke="#A8A59C" stroke-width="2"/>
+          <line x1="40.4" y1="68" x2="74.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="85.4" y1="68" x2="119.6" y2="68" stroke="#23282B" stroke-width="3.1"/>
+          <line x1="40.4" y1="83" x2="119.6" y2="83" stroke="#23282B" stroke-width="2.6"/>
+          <line x1="47.6" y1="98" x2="92" y2="98" stroke="#23282B" stroke-width="2.6"/>
+        </g>
+        <circle cx="80" cy="68" r="5.7" fill="#0F6E56"/>
+        <line x1="68" y1="130" x2="92" y2="130" stroke="#0F6E56" stroke-width="1.4"/>
+        <text x="82.4" y="158" text-anchor="middle" font-family="var(--serif)" font-size="30" font-weight="500" letter-spacing="4.8" fill="#23282B">师鉴通</text>
+        <text x="81.9" y="179" text-anchor="middle" font-family="var(--sans)" font-size="9.5" letter-spacing="3.8" fill="#0F6E56">SHIJIANTONG</text>
+      </svg>
+      <div class="slogan">论文格式智能检测</div>
+      <div class="drop">上传 .docx 论文文件</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="num">07</div>
+  <h2>禁用</h2>
+  <div class="clear">
+    <div class="box bad">
+      <svg width="80" height="40" viewBox="0 0 96 96" preserveAspectRatio="none" role="img" aria-label="拉伸">
+        <g fill="none" stroke="#23282B" stroke-linecap="round">
+          <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke-width="2.6"/>
+          <line x1="15" y1="48" x2="42" y2="48" stroke-width="2.6"/>
+          <line x1="54" y1="48" x2="81" y2="48" stroke-width="2.6"/>
+          <line x1="15" y1="60.5" x2="81" y2="60.5" stroke-width="2.2"/>
+        </g>
+        <circle cx="48" cy="48" r="4.8" fill="#0F6E56"/>
+      </svg>
+      <div class="tag no">禁止拉伸变形</div>
+    </div>
+    <div class="box bad">
+      <svg width="64" height="64" viewBox="0 0 96 96" role="img" aria-label="换色">
+        <g fill="none" stroke="#B23A2E" stroke-linecap="round">
+          <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke-width="2.6"/>
+          <line x1="15" y1="48" x2="42" y2="48" stroke-width="2.6"/>
+          <line x1="54" y1="48" x2="81" y2="48" stroke-width="2.6"/>
+          <line x1="15" y1="60.5" x2="81" y2="60.5" stroke-width="2.2"/>
+        </g>
+        <circle cx="48" cy="48" r="4.8" fill="#B23A2E"/>
+      </svg>
+      <div class="tag no">禁止改用朱批红</div>
+    </div>
+    <div class="box bad">
+      <svg width="64" height="64" viewBox="0 0 96 96" role="img" aria-label="旋转">
+        <g transform="rotate(-24 48 48)" fill="none" stroke="#23282B" stroke-linecap="round">
+          <path d="M31.1 11.75 A 40 40 0 1 0 64.9 11.75" stroke-width="2.6"/>
+          <line x1="15" y1="48" x2="42" y2="48" stroke-width="2.6"/>
+          <line x1="54" y1="48" x2="81" y2="48" stroke-width="2.6"/>
+          <line x1="21" y1="73" x2="58" y2="73" stroke-width="2.2"/>
+        </g>
+        <circle cx="48" cy="48" r="4.8" fill="#0F6E56"/>
+      </svg>
+      <div class="tag no">禁止旋转倾斜</div>
+    </div>
+  </div>
+  <p class="note">另一条不成文的规矩：不要给标识加投影、渐变、描边或发光。这套标识的全部力量来自线与留白的精确关系，任何材质效果都会把它打回普通图标。</p>
+</section>
+
+<footer style="border-top:1px solid rgba(35,40,43,.14);padding-top:24px;font-size:12px;color:#8A8A85;letter-spacing:.06em">
+  师鉴通 · 论文格式检测系统 &nbsp;|&nbsp; 品牌标识规范 V1.0 &nbsp;|&nbsp; 源文件：frontend/public/brand/
+</footer>
+
+</div>
+</body>
+</html>
