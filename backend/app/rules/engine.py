@@ -7,6 +7,7 @@ from .detectors import (
     detect_line_spacing, detect_paragraph_indent, detect_paragraph_spacing,
     detect_reference_baseline, detect_size, detect_table_figure_format,
     detect_toc_consistency, detect_page_margin,
+    detect_caption_position, detect_page_number,
 )
 from .spec_detectors import detect_caption_format, detect_header_text, detect_keyword_format, detect_required_sections
 
@@ -28,6 +29,8 @@ DETECTORS: dict[str, Detector] = {
     "keyword_format": detect_keyword_format,
     "caption_format": detect_caption_format,
     "header_text": detect_header_text,
+    "caption_position": detect_caption_position,
+    "page_number": detect_page_number,
 }
 
 

@@ -78,3 +78,32 @@ def test_size_and_bold_errors_for_multiple_runs_have_distinct_ids() -> None:
     bold_errors = detect_bold(document, check_rule("bold", "bold", {"bold": True}))
     assert len({error.error_id for error in size_errors}) == 2
     assert len({error.error_id for error in bold_errors}) == 2
+
+def document_with_structure(structure, *, font="黑体", alignment="left", size_pt=12, role=None, drawings=None, block_index=0, extra=None):
+    paragraph = {
+        "paragraph_id": "p-0001", "text": "示例", "style": {"name": "Normal"},
+        "heading": {"level": None}, "structure": structure, "structure_role": role,
+        "block_index": block_index,
+        "format": {"alignment": alignment, "line_spacing": 1.5},
+        "runs": [{"text": "示例", "font": {"effective": font}, "size_pt": size_pt, "bold": None}],
+        "drawings": drawings or [],
+        "location": {"part": "document"},
+    }
+    if extra:
+        paragraph.update(extra)
+    return Document(document_id="D1", source_filename="x.docx", paragraphs=[paragraph])
+
+
+def test_font_detector_can_target_abstract_and_skip_it_for_body() -> None:
+    document = document_with_structure("abstract", font="黑体", role="body")
+    body_rule = CheckRule(id="body-font", type="font", target="body", expected={"font": "宋体"})
+    abstract_rule = CheckRule(id="abstract-font", type="font", target="abstract", expected={"font": "宋体"})
+    assert detect_font(document, body_rule) == []
+    errors = detect_font(document, abstract_rule)
+    assert errors[0].current == "黑体"
+
+
+def test_font_detector_targets_cover_title() -> None:
+    document = document_with_structure("cover", font="楷体", role="title", size_pt=16)
+    rule = CheckRule(id="cover-title-font", type="font", target="cover_title", expected={"font": "宋体"})
+    assert detect_font(document, rule)[0].current == "楷体"

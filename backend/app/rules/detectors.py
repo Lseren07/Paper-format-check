@@ -270,3 +270,68 @@ def detect_reference_baseline(document: Document, rule: CheckRule) -> list[Error
             errors.append(_format_error(rule, paragraph, current, expected))
         expected = current + 1
     return errors
+
+
+def detect_caption_position(document: Document, rule: CheckRule) -> list[ErrorItem]:
+    expected = rule.expected.get("position")
+    if expected is None:
+        return []
+    target = rule.target if isinstance(rule.target, str) else "figure_caption"
+    errors = []
+    paragraphs = document.paragraphs
+    by_block = {item.get("block_index"): item for item in paragraphs if item.get("block_index") is not None}
+    table_blocks = {table.get("block_index") for table in document.tables if table.get("block_index") is not None}
+    for paragraph in paragraphs:
+        if paragraph.get("structure") != target:
+            continue
+        block = paragraph.get("block_index")
+        ok = False
+        current = "missing"
+        if target == "figure_caption":
+            neighbor = by_block.get((block - 1) if expected == "below" and block is not None else (block + 1) if expected == "above" and block is not None else None)
+            ok = bool(neighbor and neighbor.get("drawings"))
+            current = "drawing" if ok else "missing-drawing"
+        elif target == "table_caption" and block is not None:
+            neighbor_block = block + 1 if expected == "above" else block - 1
+            ok = neighbor_block in table_blocks
+            current = "table" if ok else "missing-table"
+        if not ok:
+            errors.append(make_error(rule, location=paragraph.get("paragraph_id", target), content=paragraph.get("text", ""), current=current, expected=str(expected)))
+    return errors
+
+
+def detect_page_number(document: Document, rule: CheckRule) -> list[ErrorItem]:
+    expected_position = rule.expected.get("position")
+    expected_format = rule.expected.get("number_format")
+    errors = []
+    pages = document.pages or []
+    if not pages:
+        return [make_error(rule, location="page-number", content="", current="missing", expected=str(expected_position or "page field"))]
+    seen_sections = set()
+    for page in pages:
+        section_index = page.get("section_index", 0)
+        if section_index in seen_sections:
+            continue
+        seen_sections.add(section_index)
+        current_pos = page.get("position") or "none"
+        current_fmt = page.get("number_format")
+        location = f"section-{section_index}:page-number"
+        if expected_position and expected_position not in {current_pos, "header_footer"} and current_pos != "header_footer":
+            errors.append(make_error(rule, location=location, content="", current=str(current_pos), expected=str(expected_position)))
+            continue
+        if expected_format and current_fmt != expected_format:
+            errors.append(make_error(rule, location=location, content="", current=str(current_fmt), expected=str(expected_format)))
+    if rule.expected.get("continuous"):
+        grouped: dict[Any, list[dict[str, Any]]] = {}
+        for page in pages:
+            if page.get("page_number") is None:
+                continue
+            grouped.setdefault(page.get("section_index", 0), []).append(page)
+        for section_index, group in grouped.items():
+            expected_number = group[0]["page_number"]
+            for page in group:
+                current = page["page_number"]
+                if current != expected_number:
+                    errors.append(make_error(rule, location=f"section-{section_index}:page-number", content="", current=str(current), expected=str(expected_number)))
+                expected_number += 1
+    return errors

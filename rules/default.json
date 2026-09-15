@@ -23,6 +23,8 @@
         "chapter": "三、论文排版（一）字体（号）与排位·文首部分",
         "text": "封面题目为三号宋体、行距 1.5lines；「摘 要」为小三号黑体加粗居中，段前 30 磅、段后 30 磅，内容为小四号宋体，两端对齐、首行缩进 2 字符、段前 6 磅、段后 0 磅、固定值 20 磅；ABSTRACT 为小三号 Times New Roman 加粗居中，内容为小四号 Times New Roman、首行缩进 1 字符、固定值 20 磅；中文摘要一般控制在 200-300 字，外文摘要不超过 250 个实词；关键词一般为 3-8 个，用分号分隔，最后一个关键词后不打标点符号，英文 Keywords 小写。",
         "rules": [
+          "cover-title-font",
+          "cover-title-size",
           "abstract-title-font",
           "abstract-title-size",
           "abstract-title-alignment",
@@ -39,6 +41,10 @@
           "abstract-en-spacing",
           "abstract-en-line-spacing",
           "abstract-en-first-line-indent",
+          "abstract-font",
+          "abstract-size",
+          "abstract-indent",
+          "abstract-alignment",
           "keywords-font",
           "keywords-size",
           "keywords-en-font",
@@ -147,7 +153,15 @@
         "rules": [
           "caption-format",
           "figure-caption-spacing",
-          "table-caption-spacing"
+          "table-caption-spacing",
+          "figure-caption-font",
+          "figure-caption-size",
+          "figure-caption-alignment",
+          "figure-caption-position",
+          "table-caption-font",
+          "table-caption-size",
+          "table-caption-alignment",
+          "table-caption-position"
         ],
         "automated": true
       },
@@ -157,7 +171,8 @@
         "chapter": "三、论文排版（二）页眉和页码",
         "text": "文首部分页眉为宋体五号居中：中文摘要页打印「摘 要」、英文摘要页打印「ABSTRACT」、目录页打印「目 录」；页码为 Times New Roman 五号居中，自中文摘要页起按罗马数字Ⅰ、Ⅱ……连续编排。正文部分自绪论起奇数页页眉按「第1章 章题」形式打印该页所在章号与章题目，偶数页页眉打印「电子科技大学成都学院本科毕业论文」；页码位于页面底端居中，Times New Roman 五号，自引言部分起按阿拉伯数字连续编排。",
         "rules": [
-          "header-text"
+          "header-text",
+          "page-number"
         ],
         "automated": true
       },
@@ -977,6 +992,127 @@
       "type": "reference_baseline",
       "target": "all",
       "expected": {}
+    },
+    {
+      "id": "cover-title-font",
+      "type": "font",
+      "target": "cover_title",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "cover-title-size",
+      "type": "size",
+      "target": "cover_title",
+      "expected": {
+        "size": "三号"
+      }
+    },
+    {
+      "id": "abstract-font",
+      "type": "font",
+      "target": "abstract",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "abstract-size",
+      "type": "size",
+      "target": "abstract",
+      "expected": {
+        "size": "小四"
+      }
+    },
+    {
+      "id": "abstract-indent",
+      "type": "paragraph_indent",
+      "target": "abstract",
+      "expected": {
+        "first_line_indent": "2字符"
+      }
+    },
+    {
+      "id": "abstract-alignment",
+      "type": "alignment",
+      "target": "abstract",
+      "expected": {
+        "alignment": "justify"
+      }
+    },
+    {
+      "id": "figure-caption-font",
+      "type": "font",
+      "target": "figure_caption",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "figure-caption-size",
+      "type": "size",
+      "target": "figure_caption",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "figure-caption-alignment",
+      "type": "alignment",
+      "target": "figure_caption",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "figure-caption-position",
+      "type": "caption_position",
+      "target": "figure_caption",
+      "expected": {
+        "position": "below"
+      }
+    },
+    {
+      "id": "table-caption-font",
+      "type": "font",
+      "target": "table_caption",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "table-caption-size",
+      "type": "size",
+      "target": "table_caption",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "table-caption-alignment",
+      "type": "alignment",
+      "target": "table_caption",
+      "expected": {
+        "alignment": "center"
+      }
+    },
+    {
+      "id": "table-caption-position",
+      "type": "caption_position",
+      "target": "table_caption",
+      "expected": {
+        "position": "above"
+      }
+    },
+    {
+      "id": "page-number",
+      "type": "page_number",
+      "target": "all",
+      "expected": {
+        "position": "footer",
+        "continuous": true
+      }
     }
   ]
 }

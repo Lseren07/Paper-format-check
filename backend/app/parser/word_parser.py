@@ -16,6 +16,20 @@ from .styles import parse_styles, parse_theme, resolve_style
 from .numbering import parse_numbering
 from .numbering import numbering_label
 from .relationships import parse_relationships
+from .structure import annotate_structure
+from .pages import extract_pages
+from docx.oxml.ns import qn
+
+
+def _instruction_fields(paragraph) -> list[str]:
+    """Collect SEQ/PAGE field instructions so captions can be recognized without visible numbers."""
+    root = ET.fromstring(paragraph._p.xml)
+    fields = []
+    for node in root.iter("{http://schemas.openxmlformats.org/wordprocessingml/2006/main}instrText"):
+        instruction = "".join(node.itertext()).strip()
+        if instruction:
+            fields.append(instruction)
+    return fields
 
 
 def _drawings(paragraph, relationships: dict[str, str]) -> list[dict]:
@@ -63,7 +77,7 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
         "format": {"alignment": alignment, "line_spacing": spacing_pt, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": first_pt, "first_line_indent_chars": int(first_line_chars) / 100 if first_line_chars else None, "hanging_indent_pt": hanging_pt, "hanging_indent_chars": int(hanging_chars) / 100 if hanging_chars else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
         "runs": runs, "drawings": _drawings(paragraph, relationships),
         "heading": {"level": heading_level, "source": "style" if heading_level else None},
-        "numbering": None, "location": location,
+        "numbering": None, "location": location, "fields": _instruction_fields(paragraph),
     }
 
 
@@ -150,14 +164,32 @@ def parse_docx(
     for si, section in enumerate(docx.sections):
         headers.extend([_hf(section.header, si, "odd"), _hf(section.even_page_header, si, "even")])
         footers.extend([_hf(section.footer, si, "odd"), _hf(section.even_page_footer, si, "even")])
+    body_paras = [p for p in paragraphs if p["location"]["part"] == "document"]
+    body_idx = 0
+    table_idx = 0
+    block_index = 0
+    for child in docx.element.body.iterchildren():
+        if child.tag == qn("w:p"):
+            if body_idx < len(body_paras):
+                body_paras[body_idx]["block_index"] = block_index
+                body_idx += 1
+            block_index += 1
+        elif child.tag == qn("w:tbl"):
+            if table_idx < len(tables):
+                tables[table_idx]["block_index"] = block_index
+                table_idx += 1
+            block_index += 1
+    pages = extract_pages(docx, paragraphs, tables)
+    structure = annotate_structure(paragraphs, tables)
     toc = [{"paragraph_id": p["paragraph_id"], "text": p["text"], "level": int(re.search(r"([1-9])", p["style"]["name"]).group(1)) if re.search(r"([1-9])", p["style"]["name"]) else None} for p in paragraphs if p["style"]["name"].lower().startswith("toc")]
     return Document(
         document_id=document_id or ("D" + uuid.uuid4().hex[:12]),
         source_filename=source_filename or inferred_name or "document.docx",
-        metadata={"toc_paragraphs": toc},
+        metadata={"toc_paragraphs": toc, "structure": structure},
         paragraphs=paragraphs,
         tables=tables,
         headers=headers,
         footers=footers,
+        pages=pages,
         sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}, "header_distance_pt": section.header_distance.pt if section.header_distance else None, "footer_distance_pt": section.footer_distance.pt if section.footer_distance else None} for i, section in enumerate(docx.sections)],
     )

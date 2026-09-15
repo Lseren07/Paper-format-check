@@ -91,6 +91,31 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
                 assigned.add(region)
                 if region in BODY_REGIONS:
                     assigned.add("body")
+        structure = paragraph.get("structure")
+        role = paragraph.get("structure_role")
+        if structure == "cover":
+            assigned.update({"cover"})
+            assigned.discard("body")
+            if role == "title":
+                assigned.add("cover_title")
+        elif structure == "abstract":
+            assigned.update({"abstract", "abstract-body"} if role != "title" else {"abstract-title"})
+            assigned.discard("body")
+        elif structure == "keywords":
+            assigned.update({"keywords"})
+            assigned.discard("body")
+        elif structure == "references":
+            assigned.update({"references", "references-entry"} if role != "title" else {"references-title"})
+            assigned.discard("body")
+        elif structure == "toc":
+            assigned.update({"toc-body"})
+            assigned.discard("body")
+        elif structure == "figure_caption":
+            assigned.update({"figure_caption", "figure-caption", "caption"})
+            assigned.discard("body")
+        elif structure == "table_caption":
+            assigned.update({"table_caption", "table-caption", "caption"})
+            assigned.discard("body")
         mapping[str(paragraph.get("paragraph_id", ""))] = assigned
     return mapping
 

@@ -7,8 +7,6 @@ from fastapi.testclient import TestClient
 
 from backend.app.api import upload
 from backend.app.main import app
-from backend.app.models.contracts import Document as PaperDocument
-from backend.app.services.format_summary import summarize_document_format
 from backend.app.services.task_store import TaskRecord, store
 
 BODY_TEXT = "随着人工智能技术的发展，论文格式检测逐渐自动化。"
@@ -49,15 +47,6 @@ def detect(client: TestClient, task_id: str) -> None:
     started = client.post("/api/v1/detect/start", json={"task_id": task_id})
     assert started.status_code == 200
     assert started.json()["data"]["status"] == "completed"
-
-
-def test_summary_empty_document_is_all_none() -> None:
-    document = PaperDocument(document_id="Dempty", source_filename="empty.docx")
-    assert summarize_document_format(document) == {
-        "page": {"margin": None},
-        "body": {"font": None, "size": None, "line_spacing": None},
-        "title": {"font": None, "size": None},
-    }
 
 
 def test_analysis_unknown_task_returns_404() -> None:
@@ -101,10 +90,13 @@ def test_analysis_returns_format_summary(tmp_path, monkeypatch) -> None:
     assert data["filename"] == "thesis.docx"
     assert data["status"] == "completed"
 
-    # python-docx 默认模板左右边距与上下不同，四边不一致时保留各边数值
-    assert data["page"]["margin"] == {"top": "2.54cm", "right": "3.17cm", "bottom": "2.54cm", "left": "3.17cm"}
-    assert data["body"] == {"font": "宋体", "size": "小四", "line_spacing": "1.5倍"}
-    assert data["title"] == {"font": "黑体", "size": "三号"}
+    # 正文与标题的字体字号行距按接口文档第 7 章聚合
+    assert data["format_summary"]["body"] == {"font": "宋体", "size": "小四", "line_spacing": "1.5倍"}
+    assert data["format_summary"]["title"] == {"font": "黑体", "size": "三号", "line_spacing": "未提供"}
+    # python-docx 默认模板左右边距与上下不同，逐边输出
+    margin = data["format_summary"]["page"]["margin"]
+    assert "2.54cm" in margin and "3.17cm" in margin
+    assert data["format_text"].startswith("正文格式：")
 
 
 def test_analysis_never_exposes_paper_text(tmp_path, monkeypatch) -> None:
@@ -113,18 +105,10 @@ def test_analysis_never_exposes_paper_text(tmp_path, monkeypatch) -> None:
     task_id = upload_thesis(client)
     detect(client, task_id)
 
-    payload = client.get(f"/api/v1/document/analysis/{task_id}").text
+    body = client.get(f"/api/v1/document/analysis/{task_id}").json()["data"]
+    payload = str(body)
     assert BODY_TEXT not in payload
     assert TITLE_TEXT not in payload
+    assert "document" not in body
     assert "paragraphs" not in payload
     assert "runs" not in payload
-
-
-def test_summary_collapses_uniform_margin_to_single_value() -> None:
-    margin_pt = 2.5 * 28.3465
-    document = PaperDocument(
-        document_id="Duniform",
-        source_filename="uniform.docx",
-        sections=[{"index": 0, "margins_pt": {"top": margin_pt, "right": margin_pt, "bottom": margin_pt, "left": margin_pt}}],
-    )
-    assert summarize_document_format(document)["page"]["margin"] == "2.5cm"

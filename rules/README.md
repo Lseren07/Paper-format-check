@@ -63,7 +63,7 @@
 
 ## 自动检测项
 
-当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`paragraph_spacing`、`page_margin`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`、`required_sections`、`keyword_format`、`caption_format`、`header_text`。
+当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`paragraph_spacing`、`page_margin`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`、`required_sections`、`keyword_format`、`caption_format`、`header_text`、`caption_position`、`page_number`。
 
 `default.json` 覆盖的学校规范包括：
 

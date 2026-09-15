@@ -30,6 +30,8 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   table_figure_format_error: "图表格式错误",
   reference_baseline_error: "参考文献格式错误",
   page_margin_error: "页边距错误",
+  caption_position_error: "题注位置错误",
+  page_number_error: "页码错误",
 };
 
 function errorTypeLabel(type: string): string {
