@@ -34,6 +34,12 @@
 
 当前 `default.json` 的条款全部来自《电子科技大学成都学院毕业论文（设计）撰写格式规范》（附件1）及其四张排版表（文首部分、正文部分、文尾部分、纸张规格），本身不引用附件2（教务表格）与附件3（撰写示范）的内容。
 
+规范原件随仓库提供，可直接打开核对条款摘要与原文是否一致：
+
+    docs/reference/附件1：电子科技大学成都学院毕业论文（设计）撰写格式规范.docx
+
+（`source.document` 里写的是文件名而非路径，因为该字段会原样出现在 PDF 报告的「检测依据」章节，面向的是看报告的人。）
+
 ## 规则集注册表（目录扫描 + 可配置）
 
 `rules/` 下的每个 `*.json` 都是一个可独立选择的规则集，由 `backend.app.rules.registry` 扫描登记：
@@ -53,7 +59,7 @@
 
 | id | 文件 | 说明 |
 | --- | --- | --- |
-| `default` | `default.json` | 现行唯一规则集，含 92 项检查与 `source.clauses` 条款追溯 |
+| `default` | `default.json` | 现行唯一规则集，含 107 项检查与 `source.clauses` 条款追溯 |
 
 > 旧版 `electronic-tech-cdu-v1.json` 已删除，不再维护；现行规则一律写在 `default.json`。
 > 加载器仍保留对旧结构（`page`/`body`/`headings`/`manual_checks`，没有 `checks` 字段）的翻译能力，
