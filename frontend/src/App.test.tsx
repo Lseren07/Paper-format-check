@@ -48,6 +48,17 @@ describe("paper detection flow", () => {
             }],
           },
         }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          code: 200,
+          data: {
+            task_id: "T123",
+            format_text: "正文格式：字体：宋体；字号：小四。",
+            format_summary: {},
+          },
+        }),
       });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -66,10 +77,13 @@ describe("paper detection flow", () => {
     expect(screen.getByText("随着人工智能技术的发展")).toBeInTheDocument();
     expect(screen.getByText("黑体")).toBeInTheDocument();
     expect(screen.getByText("宋体")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole("heading", { name: "格式分析" })).toBeInTheDocument();
+    expect(screen.getByText("正文格式：字体：宋体；字号：小四。")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/paper/upload");
     expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/detect/start");
     expect(fetchMock.mock.calls[2][0]).toBe("/api/v1/detect/result/T123");
+    expect(fetchMock.mock.calls[3][0]).toBe("/api/v1/document/analysis/T123");
   });
 });
 

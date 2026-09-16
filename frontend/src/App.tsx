@@ -18,6 +18,10 @@ type DetectResult = {
   errors: ErrorItem[];
 };
 
+type FormatAnalysis = {
+  format_text: string;
+};
+
 export const ERROR_TYPE_LABELS: Record<string, string> = {
   font_error: "字体错误",
   size_error: "字号错误",
@@ -48,6 +52,7 @@ export default function App() {
   const [status, setStatus] = useState("待检测");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState<DetectResult | null>(null);
+  const [analysis, setAnalysis] = useState<FormatAnalysis | null>(null);
   const [inputKey, setInputKey] = useState(0);
   const [reportStatus, setReportStatus] = useState<"idle" | "generating" | "error">("idle");
   const [reportMessage, setReportMessage] = useState("");
@@ -83,6 +88,12 @@ export default function App() {
         throw new Error(resultBody.detail ?? "获取检测结果失败");
       }
       setResult(resultBody.data);
+      const analysisResponse = await fetch(`/api/v1/document/analysis/${taskId}`);
+      const analysisBody = await analysisResponse.json();
+      if (!analysisResponse.ok) {
+        throw new Error(analysisBody.detail ?? "获取格式分析失败");
+      }
+      setAnalysis(analysisBody.data);
       setStatus("检测完成");
     } catch (error) {
       setStatus("检测失败");
@@ -95,6 +106,7 @@ export default function App() {
     setStatus("待检测");
     setMessage("");
     setResult(null);
+    setAnalysis(null);
     setReportStatus("idle");
     setReportMessage("");
     setInputKey((value) => value + 1);
@@ -174,6 +186,12 @@ export default function App() {
                 </li>
               ))}
             </ul>
+          )}
+          {analysis?.format_text && (
+            <section className="analysis-card" aria-label="格式分析">
+              <h2>格式分析</h2>
+              <p>{analysis.format_text}</p>
+            </section>
           )}
           <div className="result-actions">
             <button type="button" onClick={downloadReport} disabled={reportStatus === "generating"}>

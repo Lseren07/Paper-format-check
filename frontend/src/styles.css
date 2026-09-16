@@ -82,3 +82,7 @@ code { overflow-wrap: anywhere; }
 .result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 .result-actions button { flex: 1 1 180px; margin-top: 0; }
 .secondary-button { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+/* ---- 格式分析 ---- */
+.analysis-card { margin-top: 24px; padding: 18px; border: 1px solid var(--celadon); border-radius: 10px; background: var(--jade-tint); }
+.analysis-card h2 { font-size: 17px; }
+.analysis-card p { margin: 14px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
