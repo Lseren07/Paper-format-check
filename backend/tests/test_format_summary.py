@@ -47,3 +47,18 @@ def test_build_format_summary_includes_rendered_page_count() -> None:
     summary = build_format_summary(document)
     assert '共2页' in summary['text']
     assert summary['structured']['page']['count'] == 2
+
+
+def test_build_format_summary_translates_page_enum_values() -> None:
+    document = Document(
+        document_id='D1',
+        source_filename='x.docx',
+        pages=[
+            {'page_index': 0, 'page_number': None, 'position': 'none', 'number_format': None},
+        ],
+    )
+
+    summary = build_format_summary(document)
+
+    assert summary['structured']['page']['page_number'] == '\u672a\u8bbe\u7f6e/\u9ed8\u8ba4\uff0c\u51711\u9875'
+    assert 'none/default' not in summary['text']

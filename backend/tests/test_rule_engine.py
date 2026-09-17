@@ -17,7 +17,8 @@ def test_engine_skips_disabled_rules_and_keeps_stable_error_ids() -> None:
 def test_error_factory_uses_frozen_error_contract() -> None:
     rule = CheckRule(id="body-font", type="font", target="body", expected={})
     error = make_error(rule, location="p-0001", content="正文", current="黑体", expected="宋体")
-    assert error.error_id == "body-font:p-0001"
+    assert error.error_id.startswith("body-font:p-0001:")
+    assert len(error.error_id.split(":")[-1]) == 32
     assert "required" not in error.model_dump()
 
 

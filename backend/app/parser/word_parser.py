@@ -79,26 +79,40 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
         font = run.font
         runs.append({"text": run.text, "font": _run_font_payload(run, effective.get("font") or {}), "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
     pf = paragraph.paragraph_format
-    alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
-    heading_level = heading_level_from_style(paragraph.style.name)
-    ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
+    style_format = effective.get("paragraph") or {}
+    direct_ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
     ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-    first_line_chars = ind.get(f"{ns}firstLineChars") if ind is not None else None
-    hanging_chars = ind.get(f"{ns}hangingChars") if ind is not None else None
-    hanging_twips = ind.get(f"{ns}hanging") if ind is not None else None
-    first_pt = pf.first_line_indent.pt if pf.first_line_indent else None
-    hanging_pt = None
-    if first_pt is not None and first_pt < 0:
-        hanging_pt = abs(first_pt)
-        first_pt = None
-    if hanging_twips:
-        hanging_pt = int(hanging_twips) / 20
-    spacing = pf.line_spacing
-    spacing_pt = float(spacing.pt) if getattr(spacing, "pt", None) is not None else (None if spacing is None else float(spacing))
+    direct_first_chars = direct_ind.get(f"{ns}firstLineChars") if direct_ind is not None else None
+    direct_hanging_chars = direct_ind.get(f"{ns}hangingChars") if direct_ind is not None else None
+    direct_hanging_twips = direct_ind.get(f"{ns}hanging") if direct_ind is not None else None
+    direct_alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
+    direct_first_pt = pf.first_line_indent.pt if pf.first_line_indent is not None else None
+    direct_hanging_pt = None
+    if direct_first_pt is not None and direct_first_pt < 0:
+        direct_hanging_pt, direct_first_pt = abs(direct_first_pt), None
+    if direct_hanging_twips:
+        direct_hanging_pt = int(direct_hanging_twips) / 20
+    direct_spacing = pf.line_spacing
+    direct_spacing_pt = float(direct_spacing.pt) if getattr(direct_spacing, "pt", None) is not None else (None if direct_spacing is None else float(direct_spacing))
+    def direct_or_style(value, key):
+        return value if value is not None else style_format.get(key)
+    format_payload = {
+        "alignment": direct_or_style(direct_alignment, "alignment"),
+        "line_spacing": direct_or_style(direct_spacing_pt, "line_spacing"),
+        "space_before_pt": direct_or_style(pf.space_before.pt if pf.space_before is not None else None, "space_before_pt"),
+        "space_after_pt": direct_or_style(pf.space_after.pt if pf.space_after is not None else None, "space_after_pt"),
+        "first_line_indent_pt": direct_or_style(direct_first_pt, "first_line_indent_pt"),
+        "first_line_indent_chars": direct_or_style(int(direct_first_chars) / 100 if direct_first_chars else None, "first_line_indent_chars"),
+        "hanging_indent_pt": direct_or_style(direct_hanging_pt, "hanging_indent_pt"),
+        "hanging_indent_chars": direct_or_style(int(direct_hanging_chars) / 100 if direct_hanging_chars else None, "hanging_indent_chars"),
+        "left_indent_pt": direct_or_style(pf.left_indent.pt if pf.left_indent is not None else None, "left_indent_pt"),
+        "right_indent_pt": direct_or_style(pf.right_indent.pt if pf.right_indent is not None else None, "right_indent_pt"),
+    }
+    heading_level = heading_level_from_style(paragraph.style.name)
     return {
         "paragraph_id": f"p-{index:04d}", "index": index - 1, "text": paragraph.text,
-        "style": {"id": style_id, "name": paragraph.style.name, "based_on": []},
-        "format": {"alignment": alignment, "line_spacing": spacing_pt, "space_before_pt": pf.space_before.pt if pf.space_before else None, "space_after_pt": pf.space_after.pt if pf.space_after else None, "first_line_indent_pt": first_pt, "first_line_indent_chars": int(first_line_chars) / 100 if first_line_chars else None, "hanging_indent_pt": hanging_pt, "hanging_indent_chars": int(hanging_chars) / 100 if hanging_chars else None, "left_indent_pt": pf.left_indent.pt if pf.left_indent else None, "right_indent_pt": pf.right_indent.pt if pf.right_indent else None},
+        "style": {"id": style_id, "name": paragraph.style.name, "based_on": resources.get("styles", {}).get(style_id, {}).get("based_on") or []},
+        "format": format_payload,
         "runs": runs, "drawings": _drawings(paragraph, relationships),
         "heading": {"level": heading_level, "source": "style" if heading_level else None},
         "numbering": None, "location": location, "fields": _instruction_fields(paragraph),

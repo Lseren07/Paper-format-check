@@ -9,6 +9,7 @@ from ..models.contracts import Document, ErrorItem
 _PARAGRAPH_RE = re.compile(r"^(p-\d+)(?::run-\d+)?$")
 _MARGIN_RE = re.compile(r"^section-\d+:margin-(top|right|bottom|left)$")
 _TABLE_RE = re.compile(r"^table-(\d+)$")
+_SECTION_FIELD_RE = re.compile(r"^section-\d+:(width_cm|height_cm|header|footer)$")
 _DIGITS = "零一二三四五六七八九"
 
 _MARGIN_LABELS = {
@@ -16,6 +17,22 @@ _MARGIN_LABELS = {
     "right": "右边距",
     "bottom": "下边距",
     "left": "左边距",
+}
+
+_SECTION_FIELD_LABELS = {
+    "width_cm": "纸张宽度",
+    "height_cm": "纸张高度",
+    "header": "页眉距边界",
+    "footer": "页脚距边界",
+}
+
+_STRUCTURE_LABELS = {
+    "cover": "封面",
+    "abstract": "摘要",
+    "references": "参考文献",
+    "figure_caption": "图题",
+    "table_caption": "表题",
+    "keywords": "关键词",
 }
 
 
@@ -27,6 +44,15 @@ def format_location(document: Document, location: str) -> str:
         return "页码"
     if location == "toc":
         return "目录"
+    if location == "header":
+        return "页眉"
+    if location == "keywords":
+        return "关键词"
+    if location == "structure":
+        return "论文结构"
+    section_field = _SECTION_FIELD_RE.fullmatch(location)
+    if section_field:
+        return _SECTION_FIELD_LABELS[section_field.group(1)]
     table = _TABLE_RE.fullmatch(location)
     if table:
         return f"表格{int(table.group(1)) + 1}"
@@ -45,15 +71,7 @@ def relocate_errors(document: Document, errors: list[ErrorItem]) -> list[ErrorIt
 
 def _format_paragraph_location(document: Document, paragraph_id: str) -> str:
     paragraph = _find_paragraph(document, paragraph_id)
-    structure_labels = {
-        "cover": "封面",
-        "abstract": "摘要",
-        "references": "参考文献",
-        "figure_caption": "图题",
-        "table_caption": "表题",
-        "keywords": "关键词",
-    }
-    structure_label = structure_labels.get((paragraph or {}).get("structure", ""))
+    structure_label = _STRUCTURE_LABELS.get((paragraph or {}).get("structure", ""))
     parts = [_format_heading(item) for item in _heading_chain(document, paragraph_id)]
     if structure_label and structure_label not in parts:
         parts.insert(0, structure_label)
@@ -63,8 +81,7 @@ def _format_paragraph_location(document: Document, paragraph_id: str) -> str:
     readable = " ".join(part for part in parts if part)
     if readable:
         return readable
-    ordinal = _paragraph_ordinal(paragraph_id)
-    return ordinal or ""
+    return _paragraph_ordinal(paragraph_id)
 
 
 def _heading_chain(document: Document, paragraph_id: str) -> list[dict]:

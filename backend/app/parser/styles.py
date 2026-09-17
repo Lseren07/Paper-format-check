@@ -15,6 +15,27 @@ EAST_ASIAN_FONTS = {
 }
 LATIN_COMPANIONS = {"Times New Roman", "TimesNewRoman"}
 
+# OOXML 的 w:jc 取值与 python-docx 的枚举名不是一套词表：样式里两端对齐写的是
+# both，而段落直接格式经 python-docx 读出来是 justify。不归一就会让同一处格式
+# 因为写在样式里还是写在段落里而得出两个值，规则据此误报。这里统一到
+# paragraph.alignment.name.lower()（见 word_parser）。
+ALIGNMENT_ALIASES = {
+    "start": "left",
+    "end": "right",
+    "both": "justify",
+    "mediumkashida": "justify_med",
+    "highkashida": "justify_hi",
+    "lowkashida": "justify_low",
+    "thaidistribute": "thai_justify",
+}
+
+
+def normalize_alignment(value: str | None) -> str | None:
+    if value is None:
+        return None
+    lowered = value.lower()
+    return ALIGNMENT_ALIASES.get(lowered, lowered)
+
 
 def parse_theme(root: ET.Element | None) -> dict:
     """提取 Office 主题字体，以解析 minorEastAsia 等间接字体引用。"""
@@ -36,7 +57,9 @@ def parse_styles(root: ET.Element | None) -> dict:
     if root is None:
         return result
     defaults = root.find(f"{W}docDefaults/{W}rPrDefault/{W}rPr")
+    default_ppr = root.find(f"{W}docDefaults/{W}pPrDefault/{W}pPr")
     result["defaults"] = _rpr(defaults)
+    result["paragraph_defaults"] = _ppr(default_ppr)
     for s in root.findall(f"{W}style"):
         sid = s.get(f"{W}styleId")
         if sid:
@@ -45,9 +68,49 @@ def parse_styles(root: ET.Element | None) -> dict:
                 "name": s.findtext(f"{W}name") or "",
                 "based_on": based.get(f"{W}val") if based is not None else None,
                 "rpr": _rpr(s.find(f"{W}rPr")),
+                "ppr": _ppr(s.find(f"{W}pPr")),
             }
     return result
 
+
+def _twips(value: str | None) -> float | None:
+    try:
+        return float(value) / 20 if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _ppr(ppr: ET.Element | None) -> dict:
+    if ppr is None:
+        return {}
+    out: dict = {}
+    jc = ppr.find(f"{W}jc")
+    if jc is not None and jc.get(f"{W}val"):
+        out["alignment"] = normalize_alignment(jc.get(f"{W}val"))
+    spacing = ppr.find(f"{W}spacing")
+    if spacing is not None:
+        before, after = _twips(spacing.get(f"{W}before")), _twips(spacing.get(f"{W}after"))
+        if before is not None: out["space_before_pt"] = before
+        if after is not None: out["space_after_pt"] = after
+        line = spacing.get(f"{W}line")
+        if line is not None:
+            try:
+                raw = float(line)
+                rule = (spacing.get(f"{W}lineRule") or "auto").lower()
+                out["line_spacing"] = raw / 20 if rule in {"exact", "atleast"} else raw / 240
+            except ValueError:
+                pass
+    ind = ppr.find(f"{W}ind")
+    if ind is not None:
+        for attr, key in (("left", "left_indent_pt"), ("right", "right_indent_pt"), ("firstLine", "first_line_indent_pt"), ("hanging", "hanging_indent_pt")):
+            value = _twips(ind.get(f"{W}{attr}"))
+            if value is not None: out[key] = value
+        for attr, key in (("firstLineChars", "first_line_indent_chars"), ("hangingChars", "hanging_indent_chars")):
+            value = ind.get(f"{W}{attr}")
+            if value is not None:
+                try: out[key] = float(value) / 100
+                except ValueError: pass
+    return out
 
 def _rpr(rpr: ET.Element | None) -> dict:
     if rpr is None:
@@ -86,6 +149,18 @@ def resolve_style(style_id: str, resources: dict) -> dict:
         _merge_rpr(merged, item.get("rpr", {}))
         current = item.get("based_on")
     _merge_rpr(merged, resources.get("defaults", {}))
+    paragraph = {}
+    current = style_id
+    seen = set()
+    while current and current not in seen:
+        seen.add(current)
+        item = resources.get("styles", {}).get(current, {})
+        for key, value in item.get("ppr", {}).items():
+            paragraph.setdefault(key, value)
+        current = item.get("based_on")
+    for key, value in resources.get("paragraph_defaults", {}).items():
+        paragraph.setdefault(key, value)
+    merged["paragraph"] = paragraph
     font = dict(merged.get("font", {}))
     for key, theme_key in merged.get("font_theme", {}).items():
         font.setdefault(key, resources.get("theme", {}).get(theme_key))

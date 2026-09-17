@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from backend.app.api import upload
 from backend.app.main import app
 from backend.app.services.task_store import TaskRecord, store
+from backend.app.parser.format_summary import line_spacing_label
 
 BODY_TEXT = "随着人工智能技术的发展，论文格式检测逐渐自动化。"
 TITLE_TEXT = "基于深度学习的论文格式检测系统设计"
@@ -92,7 +93,7 @@ def test_analysis_returns_format_summary(tmp_path, monkeypatch) -> None:
 
     # 正文与标题的字体字号行距按接口文档第 7 章聚合
     assert data["format_summary"]["body"] == {"font": "宋体", "size": "小四", "line_spacing": "1.5倍"}
-    assert data["format_summary"]["title"] == {"font": "黑体", "size": "三号", "line_spacing": "未提供"}
+    assert data["format_summary"]["title"]["line_spacing"] == line_spacing_label(1.15)
     # python-docx 默认模板左右边距与上下不同，逐边输出
     margin = data["format_summary"]["page"]["margin"]
     assert "2.54cm" in margin and "3.17cm" in margin

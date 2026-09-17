@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from ..models.contracts import ErrorItem
 from .contracts import CheckRule
 
@@ -19,7 +21,7 @@ def error_type_for(rule_type: str) -> str:
 
 def make_error(rule: CheckRule, *, location: str, content: str, current: str, expected: str) -> ErrorItem:
     return ErrorItem(
-        error_id=f"{rule.id}:{location}",
+        error_id=f"{rule.id}:{location}:{uuid4().hex}",
         type=error_type_for(rule.type),
         location=location,
         content=content,

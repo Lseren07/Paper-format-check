@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Callable
 
 from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule
@@ -12,8 +12,8 @@ def _paragraphs(document: Document, rule: CheckRule):
     return target_paragraphs(document, rule)
 
 
-def _format_error(rule: CheckRule, paragraph: dict[str, Any], current: Any, expected: Any, *, location: str | None = None) -> ErrorItem:
-    return make_error(rule, location=location or paragraph.get("paragraph_id", "paragraph"), content=paragraph.get("text", ""), current=str(current), expected=str(expected))
+def _format_error(rule: CheckRule, paragraph: dict[str, Any], current: Any, expected: Any, *, location: str | None = None, display: Callable[[Any], str] = str) -> ErrorItem:
+    return make_error(rule, location=location or paragraph.get("paragraph_id", "paragraph"), content=paragraph.get("text", ""), current=display(current), expected=display(expected))
 
 
 def _run_location(paragraph: dict[str, Any], index: int) -> str:
@@ -27,6 +27,20 @@ def _values_equal(current: Any, expected: Any) -> bool:
         return str(current) == str(expected)
 
 
+def _pt_to_cm(value: Any) -> str:
+    return f"{float(value) * 2.54 / 72:.2f}cm"
+
+
+def _cm_display(value: Any) -> str:
+    text = str(value).strip()
+    if text.endswith("cm"):
+        return text
+    try:
+        return f"{float(text):.2f}cm"
+    except ValueError:
+        return text
+
+
 def _cm_to_pt(value: Any) -> float | None:
     if value is None:
         return None
@@ -34,6 +48,39 @@ def _cm_to_pt(value: Any) -> float | None:
         return float(value) * 72 / 2.54
     match = re.fullmatch(r"(\d+(?:\.\d+)?)cm", str(value).strip())
     return float(match.group(1)) * 72 / 2.54 if match else None
+
+
+def _number(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _trim(value: float) -> str:
+    return f"{value:g}"
+
+
+def _line_spacing_display(value: Any) -> str:
+    """行距的数值本身不带单位：既可能是倍数也可能是固定磅值。
+
+    Word 读出来的倍数不会超过 3（最大 3 倍），规范里的固定行距都是 17 磅以上，
+    所以以 3 为界区分，与 format_summary.line_spacing_label 保持一致。
+    """
+    number = _number(value)
+    if number is None:
+        return str(value)
+    return f"{_trim(number)}倍" if number <= 3 else f"{_trim(number)}磅"
+
+
+def _pt_display(value: Any) -> str:
+    number = _number(value)
+    return str(value) if number is None else f"{_trim(number)}磅"
+
+
+def _char_display(value: Any) -> str:
+    number = _number(value)
+    return str(value) if number is None else f"{_trim(number)}字符"
 
 
 COVER_LABEL_RUN = re.compile(r"^题\s*目$")
@@ -63,7 +110,7 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     return errors
 
 
-def _paragraph_value(document: Document, rule: CheckRule, key: str) -> list[ErrorItem]:
+def _paragraph_value(document: Document, rule: CheckRule, key: str, *, display: Callable[[Any], str] = str) -> list[ErrorItem]:
     expected = rule.expected.get(key)
     if expected is None:
         return []
@@ -73,7 +120,7 @@ def _paragraph_value(document: Document, rule: CheckRule, key: str) -> list[Erro
         if current is None:
             continue
         if not _values_equal(current, expected) and str(current) != str(expected):
-            errors.append(_format_error(rule, paragraph, current, expected))
+            errors.append(_format_error(rule, paragraph, current, expected, display=display))
     return errors
 
 
@@ -92,7 +139,7 @@ def detect_alignment(document: Document, rule: CheckRule) -> list[ErrorItem]:
 
 
 def detect_line_spacing(document: Document, rule: CheckRule) -> list[ErrorItem]:
-    return _paragraph_value(document, rule, "line_spacing")
+    return _paragraph_value(document, rule, "line_spacing", display=_line_spacing_display)
 
 
 def detect_paragraph_spacing(document: Document, rule: CheckRule) -> list[ErrorItem]:
@@ -105,18 +152,24 @@ def detect_paragraph_spacing(document: Document, rule: CheckRule) -> list[ErrorI
             if expected is None or current is None:
                 continue
             if not _values_equal(current, expected):
-                errors.append(_format_error(rule, paragraph, current, expected))
+                errors.append(_format_error(rule, paragraph, current, expected, display=_pt_display))
     return errors
 
 
-def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_key: str, pt_key: str) -> tuple[Any, Any] | None:
+def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_key: str, pt_key: str) -> tuple[Any, Any, Callable[[Any], str]] | None:
+    """规范里的缩进以字符计，而段落上记的可能就是字符数，也可能只有磅值。
+
+    两条分支的数值单位不同，所以把显示方式一并返回，避免把磅值标成字符。
+    """
     characters = re.fullmatch(r"(\d+(?:\.\d+)?)字符", str(expected_value))
     if characters is None:
         return None
     expected_characters = float(characters.group(1))
     actual_characters = paragraph.get("format", {}).get(chars_key)
     if actual_characters is not None:
-        return None if float(actual_characters) == expected_characters else (actual_characters, expected_characters)
+        if float(actual_characters) == expected_characters:
+            return None
+        return actual_characters, expected_characters, _char_display
     current = paragraph.get("format", {}).get(pt_key)
     size_pt = next((run.get("size_pt") for run in paragraph.get("runs", []) if run.get("size_pt") is not None), None)
     if current is None or size_pt is None:
@@ -124,7 +177,7 @@ def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_k
     expected_pt = expected_characters * float(size_pt)
     if abs(float(current) - expected_pt) <= 0.05:
         return None
-    return current, int(expected_pt) if float(expected_pt).is_integer() else expected_pt
+    return current, expected_pt, _pt_display
 
 
 def detect_paragraph_indent(document: Document, rule: CheckRule) -> list[ErrorItem]:
@@ -138,9 +191,9 @@ def detect_paragraph_indent(document: Document, rule: CheckRule) -> list[ErrorIt
                 continue
             mismatch = _compare_char_indent(paragraph, rule.expected[key], chars_key, pt_key)
             if mismatch:
-                errors.append(_format_error(rule, paragraph, mismatch[0], mismatch[1]))
+                errors.append(_format_error(rule, paragraph, mismatch[0], mismatch[1], display=mismatch[2]))
     if "first_line_indent_pt" in rule.expected and "first_line_indent" not in rule.expected:
-        errors.extend(_paragraph_value(document, rule, "first_line_indent_pt"))
+        errors.extend(_paragraph_value(document, rule, "first_line_indent_pt", display=_pt_display))
     return errors
 
 
@@ -156,7 +209,7 @@ def detect_size(document: Document, rule: CheckRule) -> list[ErrorItem]:
                 continue
             current = run.get("size_pt")
             if current is not None and float(current) != float(expected_pt):
-                errors.append(_format_error(rule, paragraph, current, expected_pt, location=_run_location(paragraph, index)))
+                errors.append(_format_error(rule, paragraph, current, expected_pt, location=_run_location(paragraph, index), display=_pt_display))
     return errors
 
 
@@ -238,7 +291,7 @@ def detect_table_figure_format(document: Document, rule: CheckRule) -> list[Erro
         if columns is None or columns == expected_columns:
             continue
         rows = table.get("rows", "?")
-        errors.append(make_error(rule, location=f"table-{table.get('table_index', 0)}", content="", current=f"{rows}x{columns}", expected=f"columns={expected_columns}"))
+        errors.append(make_error(rule, location=f"table-{table.get('table_index', 0)}", content="", current=f"{rows}行{columns}列", expected=f"{expected_columns}列"))
     return errors
 
 
@@ -254,21 +307,21 @@ def detect_page_margin(document: Document, rule: CheckRule) -> list[ErrorItem]:
             if current is None or expected_pt is None:
                 continue
             if abs(float(current) - expected_pt) > 0.5:
-                errors.append(make_error(rule, location=f"section-{index}:margin-{side}", content="", current=str(current), expected=str(expected)))
+                errors.append(make_error(rule, location=f"section-{index}:margin-{side}", content="", current=_pt_to_cm(current), expected=_cm_display(expected)))
         for key, expected in (("width_cm", page.get("width_cm")), ("height_cm", page.get("height_cm"))):
             current = section.get("page_width_pt" if key.startswith("width") else "page_height_pt")
             expected_pt = _cm_to_pt(expected)
             if current is None or expected_pt is None:
                 continue
             if abs(float(current) - expected_pt) > 0.6:
-                errors.append(make_error(rule, location=f"section-{index}:{key}", content="", current=str(current), expected=str(expected)))
+                errors.append(make_error(rule, location=f"section-{index}:{key}", content="", current=_pt_to_cm(current), expected=_cm_display(expected)))
         for name, expected in (("header", rule.expected.get("header")), ("footer", rule.expected.get("footer"))):
             current = section.get(f"{name}_distance_pt")
             expected_pt = _cm_to_pt(expected)
             if current is None or expected_pt is None:
                 continue
             if abs(float(current) - expected_pt) > 0.05:
-                errors.append(make_error(rule, location=f"section-{index}:{name}", content="", current=str(current), expected=str(expected)))
+                errors.append(make_error(rule, location=f"section-{index}:{name}", content="", current=_pt_to_cm(current), expected=_cm_display(expected)))
     return errors
 
 
@@ -317,8 +370,16 @@ def detect_caption_position(document: Document, rule: CheckRule) -> list[ErrorIt
             ok = neighbor_block in table_blocks
             current = "table" if ok else "missing-table"
         if not ok:
-            errors.append(make_error(rule, location=paragraph.get("paragraph_id", target), content=paragraph.get("text", ""), current=current, expected=str(expected)))
+            errors.append(make_error(rule, location=paragraph.get("paragraph_id", target), content=paragraph.get("text", ""), current=current, expected=_caption_position_label(target, expected)))
     return errors
+
+
+def _caption_position_label(target: str, position: Any) -> str:
+    """规则里写的是 below/above，端到用户面前得说清是谁的哪一侧。"""
+    subject = "表题" if target == "table_caption" else "图题"
+    neighbour = "表格" if target == "table_caption" else "图片"
+    side = {"below": "下方", "above": "上方"}.get(str(position))
+    return f"{subject}应在{neighbour}{side}" if side else str(position)
 
 
 def detect_page_number(document: Document, rule: CheckRule) -> list[ErrorItem]:

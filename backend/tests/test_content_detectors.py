@@ -7,8 +7,8 @@ def test_table_figure_detector_reports_invalid_table_shape() -> None:
     document = Document(document_id="D1", source_filename="x.docx", tables=[{"table_index": 0, "rows": 1, "columns": 4}])
     rule = CheckRule(id="table-shape", type="table_figure_format", expected={"columns": 3})
     errors = detect_table_figure_format(document, rule)
-    assert errors[0].current == "1x4"
-    assert errors[0].expected == "columns=3"
+    assert errors[0].current == "1行4列"
+    assert errors[0].expected == "3列"
 
 
 def test_reference_detector_reports_numbering_gap() -> None:
@@ -50,7 +50,7 @@ def test_caption_position_requires_figure_caption_below_drawing() -> None:
     rule = CheckRule(id="figure-pos", type="caption_position", target="figure_caption", expected={"position": "below"})
     errors = detect_caption_position(document, rule)
     assert errors[0].type == "caption_position_error"
-    assert errors[0].expected == "below"
+    assert errors[0].expected == "图题应在图片下方"
 
 
 def test_caption_position_accepts_table_caption_above_table() -> None:

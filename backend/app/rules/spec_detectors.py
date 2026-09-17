@@ -41,7 +41,7 @@ def detect_keyword_format(document: Document, rule: CheckRule) -> list[ErrorItem
         if lowercase and any(any(char.isalpha() and char.isupper() for char in item) for item in parts):
             errors.append(make_error(rule, location=paragraph.get("paragraph_id", "paragraph"), content=text, current=payload, expected="lowercase keywords"))
     if rule.expected.get("required") and not matched:
-        errors.append(make_error(rule, location="keywords", content="", current="missing", expected=pattern.pattern))
+        errors.append(make_error(rule, location="keywords", content="", current="missing", expected="\u4ee5\u201c\u5173\u952e\u8bcd\uff1a\u201d\u5f00\u5934"))
     return errors
 
 
@@ -81,4 +81,4 @@ def detect_header_text(document: Document, rule: CheckRule) -> list[ErrorItem]:
     texts = [str(item.get("text") or "") for item in items]
     if any(str(needle) in text for text in texts):
         return []
-    return [make_error(rule, location="header", content="", current="|".join(texts), expected=str(needle))]
+    return [make_error(rule, location="header", content="", current="|".join(texts) or "\u672a\u627e\u5230\u9875\u7709\u6587\u5b57", expected=str(needle))]

@@ -23,6 +23,20 @@ CHINESE_SIZES = {
     "\u5c0f\u4e94": 9,
 }
 MISSING = "\u672a\u63d0\u4f9b"
+PAGE_POSITION_LABELS = {
+    "none": "\u672a\u8bbe\u7f6e",
+    "header": "\u9875\u7709",
+    "footer": "\u9875\u811a",
+    "header_footer": "\u9875\u7709\u6216\u9875\u811a",
+}
+PAGE_FORMAT_LABELS = {
+    "default": "\u9ed8\u8ba4",
+    "decimal": "\u963f\u62c9\u4f2f\u6570\u5b57",
+    "upperRoman": "\u5927\u5199\u7f57\u9a6c\u6570\u5b57",
+    "lowerRoman": "\u5c0f\u5199\u7f57\u9a6c\u6570\u5b57",
+    "upperLetter": "\u5927\u5199\u5b57\u6bcd",
+    "lowerLetter": "\u5c0f\u5199\u5b57\u6bcd",
+}
 
 
 def _majority(values: Iterable[Any]) -> Any | None:
@@ -40,8 +54,8 @@ def size_name(size_pt: Any) -> str | None:
         if abs(number - value) < 0.05:
             return name
     if number.is_integer():
-        return str(int(number))
-    return str(number)
+        return f"{int(number)} pt"
+    return f"{number} pt"
 
 
 def line_spacing_label(value: Any) -> str | None:
@@ -104,7 +118,11 @@ def build_format_summary(document: Document) -> dict[str, Any]:
         count = len(document.pages)
         numbers = [item.get("page_number") for item in document.pages if item.get("page_number") is not None]
         structured.setdefault("page", {})["count"] = count
-        label = f"{page.get('position') or 'none'}/{page.get('number_format') or 'default'}\uff0c\u5171{count}\u9875"
+        position = page.get("position") or "none"
+        number_format = page.get("number_format") or "default"
+        position_label = PAGE_POSITION_LABELS.get(position, str(position))
+        format_label = PAGE_FORMAT_LABELS.get(number_format, str(number_format))
+        label = f"{position_label}/{format_label}\uff0c\u5171{count}\u9875"
         if numbers:
             label += f"\uff08{numbers[0]}-{numbers[-1]}\uff09"
         structured["page"]["page_number"] = label

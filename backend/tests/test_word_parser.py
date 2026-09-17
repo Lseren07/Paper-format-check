@@ -66,6 +66,32 @@ def test_numbering_label_expands_decimal_multilevel_template() -> None:
     assert numbering_label("%1", [3], "lowerLetter") == "c"
 
 
+def test_paragraph_format_resolves_style_and_doc_default_inheritance() -> None:
+    document_xml = """<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+      <w:body><w:p><w:pPr><w:pStyle w:val="BodyStyle"/></w:pPr><w:r><w:t>Styled paragraph</w:t></w:r></w:p>
+      <w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr></w:body>
+    </w:document>"""
+    styles_xml = """<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+      <w:docDefaults><w:rPrDefault><w:rPr/></w:rPrDefault><w:pPrDefault><w:pPr><w:jc w:val="left"/></w:pPr></w:pPrDefault></w:docDefaults>
+      <w:style w:type="paragraph" w:styleId="BodyStyle"><w:name w:val="Body Style"/>
+        <w:pPr><w:jc w:val="center"/><w:spacing w:line="800" w:lineRule="exact" w:after="1200"/><w:ind w:firstLine="480"/></w:pPr>
+      </w:style>
+    </w:styles>"""
+    stream = BytesIO()
+    with ZipFile(stream, "w", ZIP_DEFLATED) as archive:
+        archive.writestr('[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>')
+        archive.writestr('_rels/.rels', '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+        archive.writestr("word/document.xml", document_xml)
+        archive.writestr("word/_rels/document.xml.rels", '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>')
+        archive.writestr("word/styles.xml", styles_xml)
+    parsed = parse_docx(BytesIO(stream.getvalue()))
+    paragraph = parsed.paragraphs[0]
+    assert paragraph["format"]["line_spacing"] == 40
+    assert paragraph["format"]["alignment"] == "center"
+    assert paragraph["format"]["space_after_pt"] == 60
+    assert paragraph["format"]["first_line_indent_pt"] == 24
+
+
 def test_styles_resolve_doc_defaults_and_theme_font() -> None:
     xml = """<w:styles xmlns:w='http://schemas.openxmlformats.org/wordprocessingml/2006/main'><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:eastAsia='宋体'/><w:sz w:val='24'/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:styleId='Body'><w:name w:val='正文'/><w:rPr><w:rFonts w:ascii='Arial'/></w:rPr></w:style></w:styles>"""
     parsed = parse_styles(ET.fromstring(xml))

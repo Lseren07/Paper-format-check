@@ -39,8 +39,9 @@ def test_paragraph_indent_converts_two_characters_using_run_size() -> None:
     document.paragraphs[0]["runs"][0]["size_pt"] = 12
     document.paragraphs[0]["format"]["first_line_indent_pt"] = 12
     errors = detect_paragraph_indent(document, check_rule("indent", "paragraph_indent", {"first_line_indent": "2字符"}))
-    assert errors[0].current == "12"
-    assert errors[0].expected == "24"
+    # 走的是磅值分支，数值必须带磅，否则会被当成字符数读错
+    assert errors[0].current == "12磅"
+    assert errors[0].expected == "24磅"
 
 
 def test_paragraph_indent_prefers_word_character_indent_over_mixed_run_sizes() -> None:

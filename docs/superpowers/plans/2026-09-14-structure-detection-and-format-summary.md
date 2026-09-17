@@ -27,10 +27,10 @@
 - Modify: `backend/app/parser/word_parser.py`
 - Test: `backend/tests/test_word_parser.py`
 
-- [ ] **Step 1: Write failing tests** for cover/abstract/references/captions and PAGE fields.
-- [ ] **Step 2: Run focused tests and confirm they fail.**
-- [ ] **Step 3: Annotate document paragraphs and fill `pages`.**
-- [ ] **Step 4: Re-run parser tests.**
+- [x] **Step 1: Write failing tests** for cover/abstract/references/captions and PAGE fields.
+- [x] **Step 2: Run focused tests and confirm they fail.**
+- [x] **Step 3: Annotate document paragraphs and fill `pages`.**
+- [x] **Step 4: Re-run parser tests.**
 
 ### Task 2: Detectors
 
@@ -41,10 +41,10 @@
 - Modify: `backend/app/services/location.py`
 - Test: `backend/tests/test_rule_detectors.py`, `backend/tests/test_content_detectors.py`
 
-- [ ] **Step 1: Write failing tests** for cover/abstract targets, caption format/position, and page-number fields.
-- [ ] **Step 2: Confirm fail.**
-- [ ] **Step 3: Extend target matching and add `caption_position`/`page_number` detectors.**
-- [ ] **Step 4: Re-run detector tests.**
+- [x] **Step 1: Write failing tests** for cover/abstract targets, caption format/position, and page-number fields.
+- [x] **Step 2: Confirm fail.**
+- [x] **Step 3: Extend target matching and add `caption_position`/`page_number` detectors.**
+- [x] **Step 4: Re-run detector tests.**
 
 ### Task 3: Readable format analysis
 
@@ -55,7 +55,14 @@
 - Modify: `frontend/src/styles.css`
 - Test: `backend/tests/test_detect.py`, `frontend/src/App.test.tsx`
 
-- [ ] **Step 1: Write failing tests** for `format_text` and frontend display.
-- [ ] **Step 2: Confirm fail.**
-- [ ] **Step 3: Return summary from analysis API and render it on the format analysis tab.**
-- [ ] **Step 4: Run backend and frontend tests.**
+- [x] **Step 1: Write failing tests** for `format_text` and frontend display.
+- [x] **Step 2: Confirm fail.**
+- [x] **Step 3: Return summary from analysis API and render it on the format analysis tab.**
+- [x] **Step 4: Run backend and frontend tests.**
+
+## Completion Record (2026-09-16)
+
+- Backend regression: `151 passed, 1 warning`; pytest temporary data is isolated under `.verification-tmp/pytest-final`.
+- Frontend regression: `npm.cmd test -- --run` passed (`2` files / `3` tests), and `npm.cmd run build` passed.
+- The result screen now requests and displays `GET /api/v1/document/analysis/{task_id}`, so the user-visible route covers upload, detection, result, format analysis and PDF-report generation.
+- False-positive regression coverage is retained in `backend/tests/test_detection_false_positives.py`, covering table cells, TOC entries, reference boundaries, East-Asian fonts and title/cover targeting.
