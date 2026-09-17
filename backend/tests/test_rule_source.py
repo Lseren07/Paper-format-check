@@ -119,20 +119,21 @@ def _story_text(task: TaskRecord) -> str:
     return "\n".join(parts)
 
 
-def test_report_writes_real_clauses_and_no_placeholder() -> None:
+def test_report_results_come_first_and_basis_is_name_only() -> None:
     task = TaskRecord(task_id="Tbasis", filename="论文.docx", status="completed", errors=[error()])
     text = _story_text(task)
     source = load_rules(RULES).source
 
     assert PLACEHOLDER not in text
     assert source.title in text
-    assert source.document in text
-    assert "校验方式" in text  # 条款明细表
-    assert "自动（" in text
-    assert source.clauses[2].title in text
-    assert source.clauses[2].text[:20] in text
-    assert "人工核对" in text
-    assert source.notes[0][:12] in text
+    # 检测结果章节在检测依据章节之前，便于先看到错误
+    assert text.index("检测结果") < text.index("检测依据")
+    # 检测依据只保留规范名称，不再有条款明细表与人工核对提示
+    assert "校验方式" not in text
+    assert "自动（" not in text
+    assert "人工核对" not in text
+    assert "出处章节" not in text
+    assert "规范摘要" not in text
 
 
 def test_report_marks_each_error_with_its_clause() -> None:
@@ -157,7 +158,9 @@ def test_report_without_errors_still_states_basis() -> None:
     text = _story_text(TaskRecord(task_id="Tclean", filename="论文.docx", status="completed"))
     assert PLACEHOLDER not in text
     assert "未发现格式问题" in text
-    assert "三、论文排版" in text
+    assert "成都学院" in text
+    # 无错误时结果章节同样在依据之前
+    assert text.index("检测结果") < text.index("检测依据")
 
 
 def test_create_report_response_exposes_rule_source(tmp_path, monkeypatch) -> None:

@@ -18,7 +18,6 @@ from reportlab.lib import colors
 from ..rules.contracts import RuleSet
 from ..services.rule_summary import (
     clauses_by_rule_id,
-    rule_basis_text,
     summarize_rule_source,
 )
 from ..services.task_store import TaskRecord
@@ -107,45 +106,6 @@ def _clause_reference(rule_id: str | None, mapping: dict[str, dict]) -> str:
     return clause["title"] if clause else "—"
 
 
-def _basis_story(rules: RuleSet, rule_file: str, styles: dict[str, ParagraphStyle], font_name: str) -> list:
-    """渲染「检测依据」：规范来源信息 + 条款明细表 + 人工核对提示。"""
-    summary = summarize_rule_source(rules)
-    story: list = []
-    title_line = summary["title"]
-    if summary["scope"]:
-        title_line = f"{title_line}（适用范围：{summary['scope']}）"
-    story.append(Paragraph(f"规范名称：{_text(title_line)}", styles["body"]))
-    if summary["organization"]:
-        story.append(Paragraph(f"发布单位：{_text(summary['organization'])}", styles["body"]))
-    if summary["document"]:
-        story.append(Paragraph(f"依据文档：{_text(summary['document'])}", styles["body"]))
-    story.append(Paragraph(f"规则文件：{_text(rule_file)}（规则版本 {_text(rules.schema_version)}）", styles["body"]))
-    story.append(Paragraph(f"依据说明：{_text(rule_basis_text(rules))}", styles["body"]))
-
-    clauses = summary["clauses"]
-    if clauses:
-        story.append(Spacer(1, 2 * mm))
-        rows = [[Paragraph(label, styles["cell"]) for label in ("规范条款", "出处章节", "规范摘要", "校验方式")]]
-        for clause in clauses:
-            method = "人工核对" if not clause["automated"] else f"自动（{clause['rule_count']} 项）"
-            rows.append([
-                Paragraph(_text(clause["title"]), styles["cell"]),
-                Paragraph(_text(clause["chapter"]), styles["cell"]),
-                Paragraph(_text(clause["text"]), styles["cell"]),
-                Paragraph(method, styles["cell"]),
-            ])
-        table = Table(rows, colWidths=[28 * mm, 36 * mm, 82 * mm, 28 * mm], repeatRows=1)
-        table.setStyle(_table_style(font_name))
-        story.append(table)
-
-    if summary["notes"]:
-        story.append(Spacer(1, 2 * mm))
-        story.append(Paragraph("以下内容规范有要求但机器不做判定，请教师人工核对：", styles["small"]))
-        for note in summary["notes"]:
-            story.append(Paragraph("· " + _text(note), styles["small"]))
-    return story
-
-
 def build_report_story(
     task: TaskRecord,
     *,
@@ -154,20 +114,20 @@ def build_report_story(
     styles: dict[str, ParagraphStyle],
     font_name: str,
 ) -> list:
-    """组装报告的版面内容，抽出来便于直接测试报告写了什么。"""
+    """组装报告的版面内容，抽出来便于直接测试报告写了什么。
+
+    检测结果放在最前面便于快速看到错误；「检测依据」只保留规范名称一行，
+    每条错误的规范出处由错误表格的「规范条款」列逐条给出。
+    """
     story: list = [
         Paragraph("论文格式检测报告", styles["title"]),
         Paragraph(f"文件名称：{_text(task.filename)}", styles["body"]),
         Paragraph(f"任务编号：{_text(task.task_id)}", styles["body"]),
         Paragraph(f"检测状态：{_text(task.status)}", styles["body"]),
         Spacer(1, 4 * mm),
-        Paragraph("检测依据", styles["heading"]),
-    ]
-    story.extend(_basis_story(rules, rule_file, styles, font_name))
-    story.extend([
         Paragraph("检测结果", styles["heading"]),
         Paragraph(f"共发现 {len(task.errors)} 个格式问题。" if task.errors else "未发现格式问题，检测通过。", styles["body"]),
-    ])
+    ]
     if task.errors:
         clause_mapping = clauses_by_rule_id(rules)
         rows = [[Paragraph(label, styles["cell"]) for label in ("类型", "位置", "错误文本", "当前格式", "规范要求", "规范条款")]]
@@ -182,11 +142,18 @@ def build_report_story(
             ])
         table = Table(rows, colWidths=[22 * mm, 26 * mm, 48 * mm, 22 * mm, 22 * mm, 34 * mm], repeatRows=1)
         table.setStyle(_table_style(font_name))
-        first_basis = next((error.basis for error in task.errors if error.basis), "")
-        footnote = "「规范条款」列给出每条问题在依据文档中的出处；其余条款见「检测依据」章节。"
-        if first_basis:
-            footnote += f"规则级依据示例：{_text(first_basis)}。"
-        story.extend([Spacer(1, 3 * mm), table, Paragraph(footnote, styles["small"])])
+        story.extend([Spacer(1, 3 * mm), table])
+
+    # 检测依据简化为仅规范名称，放在结果之后
+    summary = summarize_rule_source(rules)
+    title_line = summary["title"]
+    if summary["scope"]:
+        title_line = f"{title_line}（适用范围：{summary['scope']}）"
+    story.extend([
+        Spacer(1, 4 * mm),
+        Paragraph("检测依据", styles["heading"]),
+        Paragraph(f"规范名称：{_text(title_line)}", styles["body"]),
+    ])
     return story
 
 
