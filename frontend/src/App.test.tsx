@@ -84,6 +84,17 @@ describe("paper detection flow", () => {
     expect(fetchMock.mock.calls[1][0]).toBe("/api/v1/detect/start");
     expect(fetchMock.mock.calls[2][0]).toBe("/api/v1/detect/result/T123");
     expect(fetchMock.mock.calls[3][0]).toBe("/api/v1/document/analysis/T123");
+
+    // 结果页按钮应在错误列表之前（避免错误多时被顶到页面很深处）
+    const resultHeading = screen.getByRole("heading", { name: "检测结果" });
+    const downloadButton = screen.getByRole("button", { name: "下载 PDF 报告" });
+    const firstErrorTitle = screen.getByRole("heading", { name: "字体错误" });
+    expect(
+      resultHeading.compareDocumentPosition(downloadButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      downloadButton.compareDocumentPosition(firstErrorTitle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

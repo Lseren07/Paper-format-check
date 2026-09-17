@@ -158,6 +158,13 @@ export default function App() {
         </header>
         <section className="panel">
           <h2>共 {result.total_error} 个格式问题</h2>
+          <div className="result-actions">
+            <button type="button" onClick={downloadReport} disabled={reportStatus === "generating"}>
+              {reportStatus === "generating" ? "正在生成报告" : "下载 PDF 报告"}
+            </button>
+            <button type="button" className="secondary-button" onClick={backToUpload}>返回上传</button>
+          </div>
+          {reportMessage && <p className="error">{reportMessage}</p>}
           {result.errors.length === 0 ? (
             <p className="muted">未发现格式问题。</p>
           ) : (
@@ -193,13 +200,6 @@ export default function App() {
               <p>{analysis.format_text}</p>
             </section>
           )}
-          <div className="result-actions">
-            <button type="button" onClick={downloadReport} disabled={reportStatus === "generating"}>
-              {reportStatus === "generating" ? "正在生成报告" : "下载 PDF 报告"}
-            </button>
-            <button type="button" className="secondary-button" onClick={backToUpload}>返回上传</button>
-          </div>
-          {reportMessage && <p className="error">{reportMessage}</p>}
         </section>
       </main>
     );
