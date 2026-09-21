@@ -39,12 +39,19 @@ def test_create_and_download_report_then_removes_source(tmp_path, monkeypatch) -
     data = created.json()["data"]
     assert data["report_id"] == f"R{task_id}"
     assert data["filename"] == "毕业论文_格式检测报告.pdf"
+    assert data["markdown_filename"] == "毕业论文_格式检测报告.md"
     assert (report_dir / f"R{task_id}.pdf").read_bytes().startswith(b"%PDF")
+    assert "# 论文格式检测报告" in (report_dir / f"R{task_id}.md").read_text(encoding="utf-8")
 
     downloaded = client.get(f"/api/v1/report/download/R{task_id}")
     assert downloaded.status_code == 200
     assert downloaded.headers["content-type"].startswith("application/pdf")
     assert downloaded.content.startswith(b"%PDF")
+
+    downloaded_markdown = client.get(f"/api/v1/report/download/R{task_id}/markdown")
+    assert downloaded_markdown.status_code == 200
+    assert downloaded_markdown.headers["content-type"].startswith("text/markdown")
+    assert downloaded_markdown.content.startswith("# 论文格式检测报告".encode())
     store.delete(task_id)
 
 
@@ -73,12 +80,14 @@ def test_delete_task_removes_task_source_and_report(tmp_path, monkeypatch) -> No
     report_dir.mkdir(parents=True)
     (upload_dir / f"{task_id}.docx").write_bytes(b"source")
     (report_dir / f"R{task_id}.pdf").write_bytes(b"%PDF-test")
+    (report_dir / f"R{task_id}.md").write_text("# report", encoding="utf-8")
 
     response = client.delete(f"/api/v1/task/{task_id}")
     assert response.status_code == 200
     assert store.get(task_id) is None
     assert not (upload_dir / f"{task_id}.docx").exists()
     assert not (report_dir / f"R{task_id}.pdf").exists()
+    assert not (report_dir / f"R{task_id}.md").exists()
 
 
 def test_download_report_rejects_unknown_report(tmp_path, monkeypatch) -> None:

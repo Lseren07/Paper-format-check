@@ -157,7 +157,7 @@ export default function App() {
     setInputKey((value) => value + 1);
   }
 
-  async function downloadReport() {
+  async function downloadReport(format: "pdf" | "markdown") {
     if (!result || reportStatus === "generating") return;
     setReportStatus("generating");
     setReportMessage("");
@@ -170,7 +170,10 @@ export default function App() {
       const createBody = await createResponse.json();
       if (!createResponse.ok) throw new Error(createBody.detail ?? "报告生成失败");
 
-      const downloadUrl = createBody.data?.download_url as string | undefined;
+      const reportData = createBody.data ?? {};
+      const downloadUrl = format === "markdown"
+        ? reportData.markdown_download_url
+        : reportData.download_url;
       if (!downloadUrl) throw new Error("报告下载地址缺失");
       const downloadResponse = await fetch(downloadUrl);
       if (!downloadResponse.ok) {
@@ -181,7 +184,9 @@ export default function App() {
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = createBody.data.filename ?? "格式检测报告.pdf";
+      anchor.download = format === "markdown"
+        ? reportData.markdown_filename ?? "格式检测报告.md"
+        : reportData.filename ?? "格式检测报告.pdf";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -213,8 +218,11 @@ export default function App() {
           <h2>共 {result.total_error} 个格式问题</h2>
           {/* 按钮放在错误列表之前：问题多时列表会把按钮顶到很深的位置 */}
           <div className="result-actions">
-            <button type="button" onClick={downloadReport} disabled={reportStatus === "generating"}>
+            <button type="button" onClick={() => downloadReport("pdf")} disabled={reportStatus === "generating"}>
               {reportStatus === "generating" ? "正在生成报告" : "下载 PDF 报告"}
+            </button>
+            <button type="button" onClick={() => downloadReport("markdown")} disabled={reportStatus === "generating"}>
+              {reportStatus === "generating" ? "正在生成报告" : "下载 Markdown 报告"}
             </button>
             <button type="button" className="secondary-button" onClick={backToUpload}>返回上传</button>
           </div>

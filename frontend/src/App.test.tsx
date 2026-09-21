@@ -149,6 +149,54 @@ describe("paper detection flow", () => {
     expect(screen.queryByText("justify")).not.toBeInTheDocument();
   });
 
+  it("downloads PDF and Markdown reports from their respective URLs", async () => {
+    const fetchMock = stubDetection([]);
+    const user = await uploadAndDetect();
+    const blob = new Blob(["report"]);
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:report"),
+      revokeObjectURL: vi.fn(),
+    });
+    const anchor = document.createElement("a");
+    vi.spyOn(anchor, "click").mockImplementation(() => undefined);
+    vi.spyOn(anchor, "remove").mockImplementation(() => undefined);
+    const createElement = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation((tagName: string) =>
+      tagName === "a" ? anchor : createElement(tagName),
+    );
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: {
+          filename: "thesis_格式检测报告.pdf",
+          markdown_filename: "thesis_格式检测报告.md",
+          download_url: "/api/v1/report/download/RT123",
+          markdown_download_url: "/api/v1/report/download/RT123/markdown",
+        } }),
+      })
+      .mockResolvedValueOnce({ ok: true, blob: async () => blob });
+    await user.click(screen.getByRole("button", { name: "下载 PDF 报告" }));
+    expect(fetchMock.mock.calls[4][0]).toBe("/api/v1/report/create");
+    expect(fetchMock.mock.calls[5][0]).toBe("/api/v1/report/download/RT123");
+    expect(anchor.download).toBe("thesis_格式检测报告.pdf");
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: {
+          filename: "thesis_格式检测报告.pdf",
+          markdown_filename: "thesis_格式检测报告.md",
+          download_url: "/api/v1/report/download/RT123",
+          markdown_download_url: "/api/v1/report/download/RT123/markdown",
+        } }),
+      })
+      .mockResolvedValueOnce({ ok: true, blob: async () => blob });
+    await user.click(screen.getByRole("button", { name: "下载 Markdown 报告" }));
+    expect(fetchMock.mock.calls[6][0]).toBe("/api/v1/report/create");
+    expect(fetchMock.mock.calls[7][0]).toBe("/api/v1/report/download/RT123/markdown");
+    expect(anchor.download).toBe("thesis_格式检测报告.md");
+  });
+
   it("filters by type and paginates through long result lists", async () => {
     const errors = Array.from({ length: 25 }, (_, index) => ({
       error_id: `font_error:p-${index}:x`,
