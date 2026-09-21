@@ -195,6 +195,27 @@ def test_parse_docx_identifies_cover_abstract_and_references() -> None:
     assert structure["references"]["paragraph_ids"]
 
 
+def test_parse_docx_limits_keyword_structures_to_abstract_regions() -> None:
+    source = BuildDocument()
+    source.add_paragraph("摘要")
+    source.add_paragraph("中文摘要正文")
+    source.add_paragraph("关键词：格式；检测；规则")
+    source.add_paragraph("ABSTRACT")
+    source.add_paragraph("English abstract body")
+    source.add_paragraph("Keywords：format; checking; rules")
+    source.add_paragraph("第一章 绪论", style="Heading 1")
+    source.add_paragraph("Keywords：正文中的普通内容")
+    source.add_paragraph("关键词：正文中的普通内容")
+
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    by_text = {item["text"]: item for item in parsed.paragraphs if item["location"]["part"] == "document"}
+
+    assert by_text["关键词：格式；检测；规则"]["structure"] == "keywords"
+    assert by_text["Keywords：format; checking; rules"]["structure"] == "keywords_en"
+    assert by_text["Keywords：正文中的普通内容"]["structure"] == "body"
+    assert by_text["关键词：正文中的普通内容"]["structure"] == "body"
+
+
 def test_parse_docx_does_not_invent_cover_without_abstract_marker() -> None:
     source = BuildDocument()
     source.add_paragraph("第二章 系统设计", style="Heading 1")

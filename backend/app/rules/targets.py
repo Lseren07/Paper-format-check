@@ -2,7 +2,7 @@ import re
 from typing import Any
 
 from ..models.contracts import Document
-from ..parser.structure import heading_level_from_style
+from ..parser.structure import heading_level_from_style, heading_level_from_text
 from .contracts import CheckRule
 
 
@@ -29,8 +29,6 @@ TITLE_BODY_REGION = {
 BODY_REGIONS = {"body", "abstract-body", "thanks-body", "appendix-body", "conclusion-body"}
 KEEP_REGION_ON_HEADING = {"abstract-en-body", "foreign-body"}
 CHAPTER_RE = re.compile(r"^第[一二三四五六七八九十百零\d]+\s*章")
-KEYWORDS_ZH = re.compile(r"^关键词\s*[：:]")
-KEYWORDS_EN = re.compile(r"^Keywords\s*[：:]", re.I)
 CAPTION_RE = re.compile(r"^(图|表)\s*[\dA-Za-z]")
 CHINESE_SIZES = {
     "初号": 42, "小初": 36, "一号": 26, "小一": 24, "二号": 22, "小二": 18,
@@ -74,6 +72,14 @@ def _location_part(paragraph: dict[str, Any]) -> str:
 
 def _style_name(paragraph: dict[str, Any]) -> str:
     return str((paragraph.get("style") or {}).get("name") or "")
+
+
+def _heading_level(paragraph: dict[str, Any]) -> int | None:
+    return (
+        (paragraph.get("heading") or {}).get("level")
+        or heading_level_from_style((paragraph.get("style") or {}).get("name"))
+        or heading_level_from_text(paragraph_text(paragraph))
+    )
 
 
 def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
@@ -136,21 +142,18 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         text = paragraph_text(paragraph)
         assigned: set[str] = set()
         if _is_toc_style(paragraph):
-            assigned.add("toc-body")
+            if _heading_level(paragraph) != 2:
+                assigned.add("toc-body")
         else:
             title = special_title_target(text)
             if title:
                 assigned.add(title)
                 region = TITLE_BODY_REGION.get(title, "body")
-            elif KEYWORDS_ZH.match(text):
-                assigned.add("keywords")
-            elif KEYWORDS_EN.match(text):
-                assigned.add("keywords-en")
             elif CAPTION_RE.match(text):
                 assigned.add("figure-caption" if text.startswith("\u56fe") else "table-caption")
                 assigned.add("caption")
             else:
-                level = (paragraph.get("heading") or {}).get("level") or heading_level_from_style((paragraph.get("style") or {}).get("name"))
+                level = _heading_level(paragraph)
                 if level:
                     if region in KEEP_REGION_ON_HEADING and not CHAPTER_RE.match(text):
                         assigned = set()
@@ -171,13 +174,15 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         elif structure == "abstract":
             assigned = {"abstract", "abstract-body"} if role != "title" else {"abstract-title"}
         elif structure == "keywords":
-            assigned = {"keywords"}
+            assigned = {"keywords-en" if re.match(r"^Keywords", text, re.I) else "keywords"}
+        elif structure == "keywords_en":
+            assigned = {"keywords-en"}
         elif structure == "references":
             assigned = {"references", "references-entry"} if role != "title" else {"references-title"}
         elif structure == "toc":
-            assigned = {"toc-body"}
+            assigned = set() if _heading_level(paragraph) == 2 else {"toc-body"}
         elif structure == "body":
-            level = (paragraph.get("heading") or {}).get("level") or heading_level_from_style((paragraph.get("style") or {}).get("name"))
+            level = _heading_level(paragraph)
             note = _note_caption_targets(paragraph)
             if note:
                 assigned = note

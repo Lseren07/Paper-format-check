@@ -41,8 +41,8 @@ def test_default_rule_file_keeps_chinese_expected_values() -> None:
     assert expected["title1-font"]["font"] == "黑体"
     assert expected["title1-size"]["size"] == "小三"
     assert expected["title3-size"]["size"] == "小四"
-    assert expected["title2-font"]["font"] == "黑体"
-    assert expected["title2-size"]["size"] == "四号"
+    assert "title2-font" not in expected
+    assert "title2-size" not in expected
 
 
 def test_legacy_service_loader_uses_stage2_rule_contract() -> None:

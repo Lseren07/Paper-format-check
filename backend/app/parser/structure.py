@@ -9,7 +9,7 @@ ABSTRACT_TITLE = re.compile(
     r"^(?:\u3010)?(?:\u4e2d\u6587)?\u6458\s*\u8981(?:\u3011)?(?:[:\uff1a])?$|^abstract(?:[:\uff1a])?\s*$",
     re.I,
 )
-KEYWORDS = re.compile(r"^\u5173\u952e\u8bcd|^key\s*words?\s*[:\uff1a]?", re.I)
+KEYWORDS = re.compile(r"^(?:\u5173\u952e\u8bcd\s*[:\uff1a]|Keywords\s*[:\uff1a])", re.I)
 TOC_TITLE = re.compile(r"^\u76ee\s*\u5f55$|^\u76ee\u5f55$", re.I)
 REF_TITLE = re.compile(r"^\u53c2\u8003\u6587\u732e")
 ACK = re.compile(r"^\u81f4\s*\u8c22$|^\u9644\u5f55")
@@ -26,7 +26,7 @@ COVER_TITLE_LABEL = re.compile(r"^\u9898\s*\u76ee\s*[:\uff1a]")
 SCHOOL_NAME = re.compile(r"\u7535\u5b50\u79d1\u6280\u5927\u5b66\u6210\u90fd\u5b66\u9662")
 COVER_FIELD = re.compile(r"^(?:\u5b66\s*\u9662|\u4e13\s*\u4e1a|\u5b66\s*\u53f7|\u59d3\s*\u540d|\u6307\u5bfc|\u804c\s*\u79f0|\u7cfb\s*\u522b|\u5b8c\u6210\u65e5\u671f)")
 COVER_BANNER = re.compile(r"\u672c\u79d1\u6bd5\u4e1a|\u6bd5\u4e1a\u8bba\u6587|\u6bd5\u4e1a\u8bbe\u8ba1")
-SPECIAL_STRUCTURES = {"cover", "abstract", "abstract_en", "keywords", "references", "toc", "foreign"}
+SPECIAL_STRUCTURES = {"cover", "abstract", "abstract_en", "keywords", "keywords_en", "references", "toc", "foreign"}
 
 
 
@@ -62,6 +62,17 @@ def heading_level_from_style(name: str | None) -> int | None:
     if "\u5927\u6807\u9898" in style:
         return 1
     return None
+
+
+_HEADING_NUMBER_RE = re.compile(
+    r"^\s*(\d+(?:\.\d+)+)(?:\s*[.)\u3001\uff0e:]?)?(?=\s|[\u3400-\u9fff]|[A-Za-z]|$)"
+)
+
+
+def heading_level_from_text(text: str | None) -> int | None:
+    """Infer a decimal numbered heading level when Word has no heading style."""
+    match = _HEADING_NUMBER_RE.match((text or "").strip())
+    return len(match.group(1).split(".")) if match else None
 
 
 def _is_document(paragraph: dict[str, Any]) -> bool:
@@ -186,8 +197,7 @@ def annotate_structure(paragraphs: list[dict[str, Any]], tables: list[dict[str, 
     zh_idx = abstract_idx
     toc_idx = _find(TOC_TITLE, body)
     ref_idx = _find(REF_TITLE, body)
-    keywords_idx = _find(KEYWORDS, body)
-    cover_end = _cover_end(body, abstract_idx, toc_idx, keywords_idx)
+    cover_end = _cover_end(body, abstract_idx, toc_idx, None)
     if cover_end:
         cover_paras = body[:cover_end]
         for paragraph in cover_paras:
@@ -378,6 +388,8 @@ def _annotate_english_abstract(body: list[dict[str, Any]], table_blocks: set[Any
             continue
         paragraph["structure"] = "abstract_en"
         paragraph["structure_role"] = "body"
+    if end < len(body) and KEYWORDS.match(_text(body[end])):
+        body[end]["structure"] = "keywords_en"
 
 
 def _annotate_foreign(body: list[dict[str, Any]]) -> None:

@@ -25,7 +25,7 @@ def valid_document(font: str) -> Document:
             "runs": [{"text": BODY_TEXT, "font": {"effective": font}, "size_pt": None, "bold": None}],
         },
         _plain("p-0002", "摘要"),
-        _plain("p-0003", "关键词：排队；系统；仿真"),
+        {**_plain("p-0003", "关键词：排队；系统；仿真"), "structure": "keywords"},
         _plain("p-0004", "目录"),
         _plain("p-0005", "参考文献"),
         _plain("p-0006", "致谢"),

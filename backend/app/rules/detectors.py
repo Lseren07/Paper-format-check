@@ -4,8 +4,11 @@ from typing import Any, Callable
 from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule
 from .errors import make_error
-from ..parser.styles import font_for_text, font_matches
+from ..parser.styles import CJK, EAST_ASIAN_FONTS, font_for_text, font_matches
 from .targets import size_to_pt, target_paragraphs, paragraph_text
+
+
+_CJK_SCRIPT = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\u3040-\u30ff]")
 
 
 def _paragraphs(document: Document, rule: CheckRule):
@@ -95,6 +98,35 @@ def _run_is_checkable(run: dict[str, Any]) -> bool:
     return True
 
 
+def _script_segments(text: str) -> list[tuple[str, str]]:
+    segments: list[tuple[str, str]] = []
+    current_script: str | None = None
+    current: list[str] = []
+    for char in text:
+        if _CJK_SCRIPT.search(char):
+            script = "cjk"
+        elif char.isalpha() or char.isdigit():
+            script = "latin"
+        else:
+            script = current_script or "neutral"
+        if script != current_script and current:
+            segments.append((current_script or "neutral", "".join(current)))
+            current = []
+        current_script = script
+        current.append(char)
+    if current:
+        segments.append((current_script or "neutral", "".join(current)))
+    return segments
+
+
+def _script_font(font: dict[str, Any], script: str, text: str) -> str | None:
+    if script == "cjk":
+        return font.get("east_asia") or font.get("eastAsia") or font_for_text(font, text)
+    if script == "latin":
+        return font.get("ascii") or font.get("hAnsi") or font_for_text(font, text)
+    return None
+
+
 def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     expected = rule.expected.get("font")
     if expected is None:
@@ -102,11 +134,28 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     errors = []
     for paragraph in _paragraphs(document, rule):
         for index, run in enumerate(paragraph.get("runs", []), start=1):
+            text = run.get("text") or ""
             if not _run_is_checkable(run):
                 continue
-            current = font_for_text(run.get("font") or {}, run.get("text"))
-            if current is not None and not font_matches(current, expected, run.get("text")):
-                errors.append(_format_error(rule, paragraph, current, expected, location=_run_location(paragraph, index)))
+            font = run.get("font") or {}
+            mismatches: dict[str, str] = {}
+            for script, segment in _script_segments(text):
+                current = _script_font(font, script, segment)
+                if current is None or script == "neutral":
+                    continue
+                if script == "cjk" and expected not in EAST_ASIAN_FONTS:
+                    continue
+                expected_for_script = "Times New Roman" if script == "latin" else expected
+                if current == expected_for_script:
+                    continue
+                if script == "cjk" and expected in {"\u5b8b\u4f53", "SimSun"} and current in {"\u5b8b\u4f53", "SimSun"}:
+                    continue
+                mismatches.setdefault(script, current)
+            for script, current in mismatches.items():
+                expected_for_script = "Times New Roman" if script == "latin" else expected
+                has_mixed_script = any(item_script == "cjk" for item_script, _ in _script_segments(text)) and any(item_script == "latin" for item_script, _ in _script_segments(text))
+                location = f"{_run_location(paragraph, index)}:{script}" if has_mixed_script else _run_location(paragraph, index)
+                errors.append(_format_error(rule, paragraph, current, expected_for_script, location=location))
     return errors
 
 
@@ -132,6 +181,8 @@ def detect_alignment(document: Document, rule: CheckRule) -> list[ErrorItem]:
     for paragraph in _paragraphs(document, rule):
         current = paragraph.get("format", {}).get("alignment")
         if current is None:
+            continue
+        if expected == "left" and current == "justify" and str(rule.target) in {"title2", "title3", "title4"}:
             continue
         if str(current) != str(expected):
             errors.append(_format_error(rule, paragraph, current, expected))
@@ -266,18 +317,65 @@ def _normalized(text: str) -> str:
     return " ".join(text.split())
 
 
-def _toc_text(text: str) -> str:
-    return re.sub(r"\s+\d+$", "", _normalized(text))
+_HEADING_LABEL = re.compile(r"^\s*(\d+(?:\.\d+)+)(?:\s*[.)\u3001\uff0e:]?\s*)(.*?)\s*$")
+_PLAIN_HEADING_LABEL = re.compile(r"^\s*(\d+)(?:\s*[.)\u3001\uff0e:]?\s+)(.*?)\s*$")
+_CHAPTER_LABEL = re.compile(r"^\s*第([一二三四五六七八九十百零\d]+)\s*章\s*(.*?)\s*$")
+_TOC_PAGE_SUFFIX = re.compile(r"(?:\t+|\s{2,})[\divxIVX]+\s*$", re.I)
+
+
+def _heading_key_and_title(text: str, *, allow_plain_number: bool = False) -> tuple[str, str] | None:
+    raw = str(text or "").strip()
+    raw = _TOC_PAGE_SUFFIX.sub("", raw).strip()
+    raw = re.sub(r"(\d+(?:\.\d+)*)\s*([\u4e00-\u9fff])", r"\1 \2", raw)
+    match = _HEADING_LABEL.match(_normalized(raw))
+    if match:
+        return match.group(1), _normalized(match.group(2))
+    if allow_plain_number:
+        match = _PLAIN_HEADING_LABEL.match(_normalized(raw))
+        if match:
+            return match.group(1), _normalized(match.group(2))
+    chapter = _CHAPTER_LABEL.match(_normalized(raw))
+    if chapter:
+        return f"chapter:{chapter.group(1)}", _normalized(chapter.group(2))
+    return None
 
 
 def detect_toc_consistency(document: Document, rule: CheckRule) -> list[ErrorItem]:
-    toc = {(_toc_text(item.get("text", "")), item.get("level")) for item in document.metadata.get("toc_paragraphs", [])}
-    headings = {(_normalized(p.get("text", "")), p.get("heading", {}).get("level")) for p in document.paragraphs if p.get("heading", {}).get("level") is not None}
+    body_titles: dict[str, str] = {}
+    for paragraph in document.paragraphs:
+        if (paragraph.get("location") or {}).get("part", "document") != "document":
+            continue
+        if str((paragraph.get("style") or {}).get("name") or "").lower().startswith("toc") or paragraph.get("structure") == "toc":
+            continue
+        heading_level = (paragraph.get("heading") or {}).get("level")
+        parsed = _heading_key_and_title(paragraph.get("text", ""), allow_plain_number=heading_level is not None)
+        if heading_level is None and (parsed is None or parsed[0].startswith("chapter:")):
+            continue
+        if parsed:
+            body_titles[parsed[0]] = parsed[1]
+    toc_titles: dict[str, str] = {}
+    for item in document.metadata.get("toc_paragraphs", []):
+        if isinstance(item, dict):
+            toc_text = item.get("text", "")
+        elif isinstance(item, (tuple, list)) and item:
+            toc_text = item[0]
+        else:
+            toc_text = ""
+        parsed = _heading_key_and_title(toc_text, allow_plain_number=True)
+        if parsed:
+            toc_titles[parsed[0]] = parsed[1]
+        elif str(toc_text).strip().isdigit():
+            toc_titles[str(toc_text).strip()] = ""
     errors = []
-    for text, level in sorted(headings - toc):
-        errors.append(make_error(rule, location="toc", content=text, current="missing", expected=f"level={level}"))
-    for text, level in sorted(toc - headings):
-        errors.append(make_error(rule, location="toc", content=text, current=f"level={level}", expected="no extra entry"))
+    for number, title in sorted(body_titles.items()):
+        toc_title = toc_titles.get(number)
+        if toc_title is None:
+            errors.append(make_error(rule, location=f"toc:{number}", content=f"{number} {title}".strip(), current="missing", expected=title))
+        elif toc_title != title:
+            errors.append(make_error(rule, location=f"toc:{number}", content=number, current=toc_title, expected=title))
+    for number, title in sorted(toc_titles.items()):
+        if number not in body_titles:
+            errors.append(make_error(rule, location=f"toc:{number}", content=number, current=title, expected="no extra entry"))
     return errors
 
 

@@ -45,10 +45,6 @@
           "abstract-size",
           "abstract-indent",
           "abstract-alignment",
-          "keywords-font",
-          "keywords-size",
-          "keywords-en-font",
-          "keywords-en-size",
           "keywords-zh",
           "keywords-en-format"
         ],
@@ -90,11 +86,6 @@
           "title1-alignment",
           "title1-bold",
           "title1-spacing",
-          "title2-font",
-          "title2-size",
-          "title2-alignment",
-          "title2-bold",
-          "title2-spacing",
           "title3-font",
           "title3-size",
           "title3-alignment",
@@ -326,47 +317,6 @@
       "expected": {
         "space_before_pt": 30,
         "space_after_pt": 30
-      }
-    },
-    {
-      "id": "title2-font",
-      "type": "font",
-      "target": "title2",
-      "expected": {
-        "font": "黑体"
-      }
-    },
-    {
-      "id": "title2-size",
-      "type": "size",
-      "target": "title2",
-      "expected": {
-        "size": "四号"
-      }
-    },
-    {
-      "id": "title2-alignment",
-      "type": "alignment",
-      "target": "title2",
-      "expected": {
-        "alignment": "left"
-      }
-    },
-    {
-      "id": "title2-bold",
-      "type": "bold",
-      "target": "title2",
-      "expected": {
-        "bold": true
-      }
-    },
-    {
-      "id": "title2-spacing",
-      "type": "paragraph_spacing",
-      "target": "title2",
-      "expected": {
-        "space_before_pt": 18,
-        "space_after_pt": 18
       }
     },
     {
@@ -901,38 +851,6 @@
       }
     },
     {
-      "id": "keywords-font",
-      "type": "font",
-      "target": "keywords",
-      "expected": {
-        "font": "宋体"
-      }
-    },
-    {
-      "id": "keywords-size",
-      "type": "size",
-      "target": "keywords",
-      "expected": {
-        "size": "小四"
-      }
-    },
-    {
-      "id": "keywords-en-font",
-      "type": "font",
-      "target": "keywords-en",
-      "expected": {
-        "font": "Times New Roman"
-      }
-    },
-    {
-      "id": "keywords-en-size",
-      "type": "size",
-      "target": "keywords-en",
-      "expected": {
-        "size": "小四"
-      }
-    },
-    {
       "id": "keywords-zh",
       "type": "keyword_format",
       "target": "keywords",
@@ -940,7 +858,17 @@
         "pattern": "^关键词\\s*[：:]",
         "min": 3,
         "max": 8,
-        "required": true
+        "required": true,
+        "first_line_indent": 0,
+        "label": {
+          "font": "宋体",
+          "size": "小四",
+          "bold": true
+        },
+        "content": {
+          "font": "宋体",
+          "size": "小四"
+        }
       }
     },
     {
@@ -951,7 +879,16 @@
         "pattern": "^Keywords\\s*[：:]",
         "min": 3,
         "max": 8,
-        "lowercase": true
+        "first_line_indent": 0,
+        "label": {
+          "font": "Times New Roman",
+          "size": "小四",
+          "bold": true
+        },
+        "content": {
+          "font": "Times New Roman",
+          "size": "小四"
+        }
       }
     },
     {

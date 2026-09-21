@@ -16,7 +16,7 @@ from .styles import font_for_text, parse_styles, parse_theme, resolve_style
 from .numbering import parse_numbering
 from .numbering import numbering_label
 from .relationships import parse_relationships
-from .structure import annotate_structure, heading_level_from_style
+from .structure import annotate_structure, heading_level_from_style, heading_level_from_text
 from .pages import extract_pages
 from docx.oxml.ns import qn
 
@@ -108,19 +108,21 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
         "left_indent_pt": direct_or_style(pf.left_indent.pt if pf.left_indent is not None else None, "left_indent_pt"),
         "right_indent_pt": direct_or_style(pf.right_indent.pt if pf.right_indent is not None else None, "right_indent_pt"),
     }
-    heading_level = heading_level_from_style(paragraph.style.name)
+    heading_level = heading_level_from_style(paragraph.style.name) or heading_level_from_text(paragraph.text)
     return {
         "paragraph_id": f"p-{index:04d}", "index": index - 1, "text": paragraph.text,
         "style": {"id": style_id, "name": paragraph.style.name, "based_on": resources.get("styles", {}).get(style_id, {}).get("based_on") or []},
         "format": format_payload,
         "runs": runs, "drawings": _drawings(paragraph, relationships),
-        "heading": {"level": heading_level, "source": "style" if heading_level else None},
+        "heading": {"level": heading_level, "source": "style" if heading_level_from_style(paragraph.style.name) else ("text" if heading_level else None)},
         "numbering": None, "location": location, "fields": _instruction_fields(paragraph),
     }
 
 
 def _open_source(source: str | Path | BinaryIO) -> tuple[bytes, str | None]:
     """统一读取路径或文件对象；只保留字节，避免后续依赖文件句柄状态。"""
+    if isinstance(source, (bytes, bytearray)):
+        return bytes(source), None
     if isinstance(source, (str, Path)):
         path = Path(source)
         try:
