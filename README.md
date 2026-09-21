@@ -2,6 +2,39 @@
 
 本项目按《论文格式检测系统技术设计文档 V1.0》建立本地开发环境。当前目录保留了产品原型 `paper-checker-prototype`，并新增前后端工程配置骨架。
 
+## Docker 一键运行（推荐协作者）
+
+适合 Windows Docker Desktop。构建后只对外开放本机 80 端口，浏览器访问 http://127.0.0.1/ 即可；/api 由 nginx 转发到后端，前后端同源。
+
+### 前置条件
+
+- 已安装并启动 Docker Desktop
+- 本机 80 端口未被 IIS 或其他网站占用
+
+### 启动
+
+在仓库根目录执行：
+
+```powershell
+docker compose up --build
+```
+
+- 页面：http://127.0.0.1/
+- API 文档：http://127.0.0.1/docs
+- 健康检查：http://127.0.0.1/api/v1/health
+
+停止：在该终端按 Ctrl+C，或另开终端执行 docker compose down。
+
+uploads/ 与 reports/ 会挂载到仓库目录，容器删除后仍保留。任务状态仍在内存中，重启后旧 task_id 会失效，但已生成的 PDF 还在。
+
+### 常见问题
+
+- 80 端口被占用：把 docker-compose.yml 里的 80:80 改成 8080:80，改访问 http://127.0.0.1:8080/
+- 首次构建需要联网拉取基础镜像和中文字体包
+- 仓库路径含中文时，请使用较新的 Docker Desktop（WSL2 后端）
+
+## 本机开发（不使用 Docker）
+
 ## 环境版本
 
 - Python 3.12.x
