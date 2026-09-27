@@ -36,6 +36,10 @@ def report_path(report_id: str) -> Path:
     return REPORT_DIR / f"{report_id}.pdf"
 
 
+def markdown_report_path(report_id: str) -> Path:
+    return REPORT_DIR / f"{report_id}.md"
+
+
 def ensure_report_font() -> str:
     if REPORT_FONT_NAME not in pdfmetrics.getRegisteredFontNames():
         if not REPORT_FONT_PATH.exists():
@@ -155,6 +159,61 @@ def build_report_story(
         Paragraph(f"规范名称：{_text(title_line)}", styles["body"]),
     ])
     return story
+
+
+def _markdown_cell(value: object) -> str:
+    """Keep arbitrary document text inside a Markdown table cell."""
+    text = str(value if value is not None else "")
+    return text.replace("\\", "\\\\").replace("|", "\\|").replace("\r\n", "<br>").replace("\n", "<br>").replace("\r", "<br>")
+
+
+def build_markdown_report(task: TaskRecord, *, rules: RuleSet, rule_file: str) -> Path:
+    """Write a UTF-8 Markdown report using the same data as the PDF report."""
+    del rule_file  # The selected rule set is represented by its source summary.
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    clause_mapping = clauses_by_rule_id(rules)
+    summary = summarize_rule_source(rules)
+    title_line = summary["title"]
+    if summary["scope"]:
+        title_line = f"{title_line}（适用范围：{summary['scope']}）"
+
+    lines = [
+        "# 论文格式检测报告",
+        "",
+        f"- 文件名称：{_markdown_cell(task.filename)}",
+        f"- 任务编号：{_markdown_cell(task.task_id)}",
+        f"- 检测状态：{_markdown_cell(task.status)}",
+        "",
+        "## 检测结果",
+        "",
+        f"{'共发现 ' + str(len(task.errors)) + ' 个格式问题。' if task.errors else '未发现格式问题，检测通过。'}",
+        "",
+    ]
+    if task.errors:
+        lines.extend([
+            "| 类型 | 位置 | 错误文本 | 当前格式 | 规范要求 | 规范条款 |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ])
+        for error in task.errors:
+            lines.append("| " + " | ".join([
+                _markdown_cell(_error_type_label(error.type)),
+                _markdown_cell(error.location),
+                _markdown_cell(error.content or "（无文本）"),
+                _markdown_cell(error.current),
+                _markdown_cell(error.expected),
+                _markdown_cell(_clause_reference(error.rule_id, clause_mapping)),
+            ]) + " |")
+        lines.append("")
+
+    lines.extend([
+        "## 检测依据",
+        "",
+        f"规范名称：{_markdown_cell(title_line)}",
+        "",
+    ])
+    target = markdown_report_path(report_id_for(task.task_id))
+    target.write_text("\n".join(lines), encoding="utf-8")
+    return target
 
 
 def build_report(task: TaskRecord, *, rules: RuleSet, rule_file: str) -> Path:

@@ -1,4 +1,4 @@
-"""PDF report creation and download endpoints."""
+"""Report creation and PDF/Markdown download endpoints."""
 
 from pathlib import Path
 import re
@@ -8,7 +8,13 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ..rules.registry import RuleSetNotFoundError, resolve_rule_set
-from ..services.report import build_report, report_id_for, report_path
+from ..services.report import (
+    build_markdown_report,
+    build_report,
+    markdown_report_path,
+    report_id_for,
+    report_path,
+)
 from ..services.rule_summary import summarize_rule_source
 from ..services.task_store import TaskRecord, store
 from . import upload
@@ -39,6 +45,7 @@ def create_report(payload: ReportCreateRequest) -> dict:
         resolved = resolve_rule_set(task.rule_set_id)
         rules = resolved.rules
         build_report(task, rules=rules, rule_file=resolved.info.file)
+        build_markdown_report(task, rules=rules, rule_file=resolved.info.file)
     except (OSError, RuntimeError, ValueError, RuleSetNotFoundError) as error:
         raise HTTPException(status_code=500, detail="检测报告生成失败") from error
     upload_path = upload.UPLOAD_DIR / f"{task.task_id}.docx"
@@ -49,8 +56,10 @@ def create_report(payload: ReportCreateRequest) -> dict:
         "report_id": report_id,
         "task_id": task.task_id,
         "filename": f"{Path(task.filename).stem}_格式检测报告.pdf",
+        "markdown_filename": f"{Path(task.filename).stem}_格式检测报告.md",
         "total_error": len(task.errors),
         "download_url": f"/api/v1/report/download/{report_id}",
+        "markdown_download_url": f"/api/v1/report/download/{report_id}/markdown",
         "rule_set_id": resolved.info.id,
         "rule_file": resolved.info.file,
         "rule_source": {
@@ -65,6 +74,22 @@ def create_report(payload: ReportCreateRequest) -> dict:
             "check_count": summary["check_count"],
         },
     }}
+
+
+@router.get("/download/{report_id}/markdown")
+def download_markdown_report(report_id: str) -> FileResponse:
+    if not re.fullmatch(r"RT[A-Za-z0-9_-]+", report_id):
+        raise HTTPException(status_code=404, detail="检测报告不存在")
+    task_id = report_id.removeprefix("R")
+    path = markdown_report_path(report_id)
+    task = _require_task(task_id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="检测报告不存在")
+    return FileResponse(
+        path,
+        media_type="text/markdown",
+        filename=f"{Path(task.filename).stem}_格式检测报告.md",
+    )
 
 
 @router.get("/download/{report_id}")
