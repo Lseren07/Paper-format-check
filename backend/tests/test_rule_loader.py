@@ -38,11 +38,16 @@ def test_default_rule_file_keeps_chinese_expected_values() -> None:
     assert expected["body-font"]["font"] == "宋体"
     assert expected["body-size"]["size"] == "小四"
     assert expected["body-first-line-indent"]["first_line_indent"] == "2字符"
+    assert expected["title2-font"]["font"] == "黑体"
+    assert expected["title2-size"]["size"] == "四号"
     assert expected["title1-font"]["font"] == "黑体"
     assert expected["title1-size"]["size"] == "小三"
     assert expected["title3-size"]["size"] == "小四"
-    assert "title2-font" not in expected
-    assert "title2-size" not in expected
+    assert "title1-bold" not in expected
+    assert "title3-bold" not in expected
+    assert "title4-bold" not in expected
+    assert "conclusion-title-bold" not in expected
+    assert "appendix-title-bold" not in expected
 
 
 def test_legacy_service_loader_uses_stage2_rule_contract() -> None:

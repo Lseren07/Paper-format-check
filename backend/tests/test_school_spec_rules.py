@@ -35,6 +35,10 @@ def test_default_rules_follow_cdu_page_and_heading_sizes() -> None:
     assert expected['foreign-body-first-line-indent']['first_line_indent'] == '1字符'
     assert 'lowercase' not in expected['keywords-en-format']
     assert expected['page-number'] == {'position': 'footer', 'continuous': True}
+    assert expected['title2-font']['font'] == '黑体'
+    assert expected['title2-size']['size'] == '四号'
+    assert expected['title2-alignment']['alignment'] == 'left'
+    assert expected['title2-spacing'] == {'space_before_pt': 18, 'space_after_pt': 18}
     types = {check.type for check in rules.checks}
     assert {'required_sections', 'caption_format', 'keyword_format', 'header_text', 'paragraph_spacing'}.issubset(types)
 
@@ -147,11 +151,12 @@ def test_keyword_format_ignores_same_label_in_body() -> None:
     assert detect_keyword_format(document, rule) == []
 
 
-def test_default_rules_skip_all_level_two_heading_format_checks_but_keep_toc_consistency() -> None:
+def test_default_rules_check_level_two_headings_without_unstated_bold_constraints() -> None:
     rules = load_rules(RULES)
     rule_ids = {check.id for check in rules.checks}
 
-    assert not any(rule_id.startswith('title2-') for rule_id in rule_ids)
+    assert {'title2-font', 'title2-size', 'title2-alignment', 'title2-spacing'} <= rule_ids
+    assert not {'title1-bold', 'title3-bold', 'title4-bold', 'conclusion-title-bold', 'appendix-title-bold'} & rule_ids
     assert 'toc-consistency' in rule_ids
 
 

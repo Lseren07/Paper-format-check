@@ -84,22 +84,22 @@
           "title1-font",
           "title1-size",
           "title1-alignment",
-          "title1-bold",
           "title1-spacing",
+          "title2-font",
+          "title2-size",
+          "title2-alignment",
+          "title2-spacing",
           "title3-font",
           "title3-size",
           "title3-alignment",
-          "title3-bold",
           "title3-spacing",
           "title4-font",
           "title4-size",
           "title4-alignment",
-          "title4-bold",
           "title4-spacing",
           "conclusion-title-font",
           "conclusion-title-size",
           "conclusion-title-alignment",
-          "conclusion-title-bold",
           "conclusion-title-spacing",
           "heading-numbering"
         ],
@@ -124,7 +124,6 @@
           "appendix-title-font",
           "appendix-title-size",
           "appendix-title-alignment",
-          "appendix-title-bold",
           "appendix-title-spacing",
           "foreign-title-font",
           "foreign-title-size",
@@ -303,20 +302,45 @@
       }
     },
     {
-      "id": "title1-bold",
-      "type": "bold",
-      "target": "title1",
-      "expected": {
-        "bold": true
-      }
-    },
-    {
       "id": "title1-spacing",
       "type": "paragraph_spacing",
       "target": "title1",
       "expected": {
         "space_before_pt": 30,
         "space_after_pt": 30
+      }
+    },
+    {
+      "id": "title2-font",
+      "type": "font",
+      "target": "title2",
+      "expected": {
+        "font": "黑体"
+      }
+    },
+    {
+      "id": "title2-size",
+      "type": "size",
+      "target": "title2",
+      "expected": {
+        "size": "四号"
+      }
+    },
+    {
+      "id": "title2-alignment",
+      "type": "alignment",
+      "target": "title2",
+      "expected": {
+        "alignment": "left"
+      }
+    },
+    {
+      "id": "title2-spacing",
+      "type": "paragraph_spacing",
+      "target": "title2",
+      "expected": {
+        "space_before_pt": 18,
+        "space_after_pt": 18
       }
     },
     {
@@ -341,14 +365,6 @@
       "target": "title3",
       "expected": {
         "alignment": "left"
-      }
-    },
-    {
-      "id": "title3-bold",
-      "type": "bold",
-      "target": "title3",
-      "expected": {
-        "bold": true
       }
     },
     {
@@ -382,14 +398,6 @@
       "target": "title4",
       "expected": {
         "alignment": "left"
-      }
-    },
-    {
-      "id": "title4-bold",
-      "type": "bold",
-      "target": "title4",
-      "expected": {
-        "bold": true
       }
     },
     {
@@ -549,14 +557,6 @@
       }
     },
     {
-      "id": "appendix-title-bold",
-      "type": "bold",
-      "target": "appendix-title",
-      "expected": {
-        "bold": true
-      }
-    },
-    {
       "id": "appendix-title-spacing",
       "type": "paragraph_spacing",
       "target": "appendix-title",
@@ -619,14 +619,6 @@
       "target": "conclusion-title",
       "expected": {
         "alignment": "center"
-      }
-    },
-    {
-      "id": "conclusion-title-bold",
-      "type": "bold",
-      "target": "conclusion-title",
-      "expected": {
-        "bold": true
       }
     },
     {
