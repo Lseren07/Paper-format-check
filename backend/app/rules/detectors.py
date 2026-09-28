@@ -139,9 +139,13 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
                 continue
             font = run.get("font") or {}
             mismatches: dict[str, str] = {}
-            for script, segment in _script_segments(text):
+            segments = _script_segments(text)
+            is_heading = (paragraph.get("heading") or {}).get("level") is not None
+            for script, segment in segments:
                 current = _script_font(font, script, segment)
                 if current is None or script == "neutral":
+                    continue
+                if is_heading and script == "latin" and re.fullmatch(r"\d+(?:\.\d+)*\.?", segment.strip()):
                     continue
                 if script == "cjk" and expected not in EAST_ASIAN_FONTS:
                     continue
@@ -153,7 +157,7 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
                 mismatches.setdefault(script, current)
             for script, current in mismatches.items():
                 expected_for_script = "Times New Roman" if script == "latin" else expected
-                has_mixed_script = any(item_script == "cjk" for item_script, _ in _script_segments(text)) and any(item_script == "latin" for item_script, _ in _script_segments(text))
+                has_mixed_script = any(item_script == "cjk" for item_script, _ in segments) and any(item_script == "latin" for item_script, _ in segments)
                 location = f"{_run_location(paragraph, index)}:{script}" if has_mixed_script else _run_location(paragraph, index)
                 errors.append(_format_error(rule, paragraph, current, expected_for_script, location=location))
     return errors
@@ -283,9 +287,9 @@ def _heading_number_parts(paragraph: dict[str, Any]) -> tuple[int, ...] | None:
     chapter = re.match(r"第\s*(\d+)\s*章", text) or re.match(r"第\s*(\d+)\s*章", label)
     if chapter:
         return (int(chapter.group(1)),)
-    match = re.fullmatch(r"(\d+(?:\.\d+)*)\.?", label)
+    match = re.match(r"^\s*(\d+(?:\.\d+)*)(?:\s*[.)、．:]|\s+|(?=[^\d.]|$))", text)
     if match is None:
-        match = re.match(r"^(\d+(?:\.\d+)*)(?:[.\s]|$)", text)
+        match = re.fullmatch(r"(\d+(?:\.\d+)*)\.?", label)
     if match is None or paragraph.get("heading", {}).get("level") is None:
         return None
     return tuple(int(part) for part in match.group(1).split("."))
@@ -509,4 +513,159 @@ def detect_page_number(document: Document, rule: CheckRule) -> list[ErrorItem]:
                 if current != expected_number:
                     errors.append(make_error(rule, location=f"section-{section_index}:page-number", content="", current=str(current), expected=str(expected_number)))
                 expected_number += 1
+    return errors
+
+
+def _part_for_page(document: Document, page: dict[str, Any], part: str) -> dict[str, Any] | None:
+    variant = page.get(f"{part}_variant")
+    if variant is None:
+        return None
+    return next((item for item in getattr(document, f"{part}s", []) if item.get("section_index") == page.get("section_index") and item.get("variant") == variant), None)
+
+
+def _style_value(run: dict[str, Any], key: str) -> Any:
+    if key == "font":
+        font = run.get("font") or {}
+        return font.get("effective") or font.get("east_asia") or font.get("eastAsia") or font.get("ascii")
+    return run.get(key)
+
+
+def _format_mismatch(rule: CheckRule, *, location: str, current: Any, expected: Any, content: str = "") -> ErrorItem:
+    return make_error(rule, location=location, content=content, current=str(current), expected=str(expected))
+
+
+def _is_front_paragraph(paragraph: dict[str, Any]) -> bool:
+    return paragraph.get("structure") in {"abstract", "abstract_en", "toc"}
+
+
+def detect_header_footer_format(document: Document, rule: CheckRule) -> list[ErrorItem]:
+    expected_header = rule.expected.get("front_header") or {}
+    expected_page = rule.expected.get("page_number") or {}
+    errors: list[ErrorItem] = []
+    front_page_indexes = {
+        paragraph.get("page_index")
+        for paragraph in document.paragraphs
+        if _is_front_paragraph(paragraph) and paragraph.get("page_index") is not None
+    }
+    for page in document.pages:
+        if page.get("page_index") not in front_page_indexes or page.get("page_source") == "estimated":
+            continue
+        header = _part_for_page(document, page, "header")
+        if header is None:
+            errors.append(_format_mismatch(rule, location="header", current="missing", expected=expected_header))
+        else:
+            paragraphs = header.get("paragraphs") or []
+            for paragraph in paragraphs:
+                content = paragraph.get("text", "")
+                alignment = (paragraph.get("format") or {}).get("alignment")
+                if expected_header.get("alignment") and alignment != expected_header["alignment"]:
+                    errors.append(_format_mismatch(rule, location="header", current=alignment or "none", expected=expected_header["alignment"], content=content))
+                for run in paragraph.get("runs") or []:
+                    if not (run.get("text") or "").strip():
+                        continue
+                    for key in ("font", "size_pt"):
+                        expected = expected_header.get(key)
+                        current = _style_value(run, key)
+                        if expected is not None and (not _values_equal(current, expected) if key == "size_pt" else current != expected):
+                            errors.append(_format_mismatch(rule, location="header", current=current or "missing", expected=expected, content=content))
+        footer = _part_for_page(document, page, "footer")
+        if footer is not None:
+            for paragraph in footer.get("paragraphs") or []:
+                has_page = any("PAGE" in str(field).upper() for run in paragraph.get("runs") or [] for field in run.get("fields") or [])
+                if not has_page:
+                    continue
+                expected_alignment = expected_page.get("alignment")
+                alignment = (paragraph.get("format") or {}).get("alignment")
+                if expected_alignment and alignment != expected_alignment:
+                    errors.append(_format_mismatch(rule, location="page-number", current=alignment or "none", expected=expected_alignment, content=paragraph.get("text", "")))
+                for run in paragraph.get("runs") or []:
+                    if not any("PAGE" in str(field).upper() for field in run.get("fields") or []):
+                        continue
+                    for key in ("font", "size_pt"):
+                        expected = expected_page.get(key)
+                        current = _style_value(run, key)
+                        if expected is not None and (not _values_equal(current, expected) if key == "size_pt" else current != expected):
+                            errors.append(_format_mismatch(rule, location="page-number", current=current or "missing", expected=expected, content=paragraph.get("text", "")))
+    if rule.expected.get("odd_even") is not None:
+        for section in document.sections:
+            if section.get("odd_and_even_pages_header_footer") is not True:
+                errors.append(_format_mismatch(rule, location=f"section-{section.get('index', 0)}:odd-even", current="false", expected="true"))
+    return errors
+
+
+def _format_family(value: Any) -> str | None:
+    if value in {"upperRoman", "lowerRoman", "roman"}:
+        return "roman"
+    if value in {"decimal", "arabic", "number"}:
+        return "decimal"
+    return None
+
+
+def _body_start_page(document: Document) -> int | None:
+    for paragraph in document.paragraphs:
+        text = str(paragraph.get("text") or "").strip()
+        if text in {"引言", "绪论"} or re.match(r"^第\s*1\s*章\s*(?:引言|绪论)", text):
+            return paragraph.get("page_index")
+    return None
+
+
+def _has_page_field(page: dict[str, Any]) -> bool:
+    for field in page.get("fields") or []:
+        instruction = field.get("instruction", "") if isinstance(field, dict) else field
+        if re.search(r"\bPAGE\b", str(instruction), re.I):
+            return True
+    return False
+
+
+def detect_page_number_segments(document: Document, rule: CheckRule) -> list[ErrorItem]:
+    pages = [
+        page for page in document.pages
+        if page.get("page_source") != "estimated"
+        and page.get("page_number") is not None
+        and _has_page_field(page)
+    ]
+    if not pages:
+        return []
+    expected_front = rule.expected.get("front_format", "roman")
+    expected_body = rule.expected.get("body_format", "decimal")
+    body_start = _body_start_page(document)
+    errors: list[ErrorItem] = []
+    for page in pages:
+        is_body = body_start is not None and page.get("page_index", -1) >= body_start
+        expected = expected_body if is_body else expected_front
+        if _format_family(page.get("number_format")) != expected:
+            errors.append(_format_mismatch(rule, location=f"section-{page.get('section_index', 0)}:page-number", current=page.get("number_format") or "none", expected=expected))
+        if is_body and page.get("page_index") == body_start and page.get("page_number") != rule.expected.get("start", 1):
+            errors.append(_format_mismatch(rule, location=f"section-{page.get('section_index', 0)}:page-number", current=page.get("page_number"), expected=rule.expected.get("start", 1)))
+    return errors
+
+
+_CHAPTER_HEADER = re.compile(r"^第\s*([一二三四五六七八九十百零\d]+)\s*章\s*(.*)$")
+
+
+def _chapter_from_text(text: str) -> str | None:
+    match = _CHAPTER_HEADER.match(text.strip())
+    return f"第{match.group(1)}章 {match.group(2).strip()}".strip() if match else None
+
+
+def detect_page_header_pattern(document: Document, rule: CheckRule) -> list[ErrorItem]:
+    expected_even = rule.expected.get("even_text")
+    errors: list[ErrorItem] = []
+    current_chapter: str | None = None
+    for page in sorted(document.pages, key=lambda item: item.get("page_index", 0)):
+        for paragraph in document.paragraphs:
+            if paragraph.get("page_index") != page.get("page_index"):
+                continue
+            chapter = _chapter_from_text(str(paragraph.get("text") or ""))
+            if chapter:
+                current_chapter = chapter
+        if page.get("page_source") == "estimated":
+            continue
+        actual = str(page.get("header_text") or "").strip()
+        location = f"header:page-{page.get('page_index', 0) + 1}"
+        if (page.get("page_index", 0) + 1) % 2 == 0:
+            if expected_even and actual != expected_even:
+                errors.append(_format_mismatch(rule, location=location, current=actual or "missing", expected=expected_even, content=actual))
+        elif current_chapter and actual != current_chapter:
+            errors.append(_format_mismatch(rule, location=location, current=actual or "missing", expected=current_chapter, content=actual))
     return errors

@@ -18,7 +18,7 @@ from docx.oxml.ns import qn
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
-def extract_pages(docx, paragraphs: list[dict[str, Any]] | None = None, tables: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+def extract_pages(docx, paragraphs: list[dict[str, Any]] | None = None, tables: list[dict[str, Any]] | None = None, *, headers: list[dict[str, Any]] | None = None, footers: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     section_settings = [_section_settings(index, section) for index, section in enumerate(docx.sections)]
     paragraphs = paragraphs or []
     tables = tables or []
@@ -112,14 +112,51 @@ def extract_pages(docx, paragraphs: list[dict[str, Any]] | None = None, tables: 
         pages = _estimate_additional_splits(docx, pages, paragraphs)
     _assign_paragraph_pages(paragraphs, pages)
     if pages:
+        _attach_active_parts(docx, pages, headers or [], footers or [])
         return pages
-    return [{
+    fallback = [{
         "page_index": index,
         "page_number": item.get("start") or 1,
         "paragraph_ids": [],
         "source": "section_settings",
         **item,
     } for index, item in enumerate(section_settings)]
+    _attach_active_parts(docx, fallback, headers or [], footers or [])
+    return fallback
+
+
+def _attach_active_parts(docx, pages: list[dict[str, Any]], headers: list[dict[str, Any]], footers: list[dict[str, Any]]) -> None:
+    header_map = {(item["section_index"], item["variant"]): item for item in headers}
+    footer_map = {(item["section_index"], item["variant"]): item for item in footers}
+    first_seen: set[int] = set()
+    odd_even = docx.settings.odd_and_even_pages_header_footer
+    for page in pages:
+        section_index = page["section_index"]
+        section = docx.sections[section_index] if section_index < len(docx.sections) else None
+        first = section_index not in first_seen
+        first_seen.add(section_index)
+        if first and section is not None and section.different_first_page_header_footer:
+            variant = "first"
+        elif odd_even and (page["page_index"] + 1) % 2 == 0:
+            variant = "even"
+        else:
+            variant = "odd"
+        header = header_map.get((section_index, variant), {})
+        footer = footer_map.get((section_index, variant), {})
+        page["header_variant"] = variant
+        page["footer_variant"] = variant
+        page["header_text"] = header.get("text", "")
+        page["footer_text"] = footer.get("text", "")
+        page["page_source"] = page["source"]
+        fields = [
+            {"instruction": field["type"], "part": part, "variant": variant}
+            for part, item in (("header", header), ("footer", footer))
+            for field in item.get("fields", [])
+        ]
+        page["fields"] = fields
+        in_header = any(re.search(r"\bPAGE\b", field["instruction"], re.I) and field["part"] == "header" for field in fields)
+        in_footer = any(re.search(r"\bPAGE\b", field["instruction"], re.I) and field["part"] == "footer" for field in fields)
+        page["position"] = "header_footer" if in_header and in_footer else "header" if in_header else "footer" if in_footer else "none"
 
 
 def _section_settings(index: int, section) -> dict[str, Any]:

@@ -165,8 +165,9 @@
         "chapter": "三、论文排版（二）页眉和页码",
         "text": "文首部分页眉为宋体五号居中：中文摘要页打印「摘 要」、英文摘要页打印「ABSTRACT」、目录页打印「目 录」；页码为 Times New Roman 五号居中，自中文摘要页起按罗马数字Ⅰ、Ⅱ……连续编排。正文部分自绪论起奇数页页眉按「第1章 章题」形式打印该页所在章号与章题目，偶数页页眉打印「电子科技大学成都学院本科毕业论文」；页码位于页面底端居中，Times New Roman 五号，自引言部分起按阿拉伯数字连续编排。",
         "rules": [
-          "header-text",
-          "page-number"
+          "front-header-format",
+          "page-number-segments",
+          "page-header-pattern"
         ],
         "automated": true
       },
@@ -932,12 +933,39 @@
       }
     },
     {
-      "id": "header-text",
-      "type": "header_text",
+      "id": "front-header-format",
+      "type": "header_footer_format",
       "target": "all",
       "expected": {
-        "contains": "电子科技大学成都学院本科毕业论文",
-        "variant": "even"
+        "front_header": {
+          "font": "宋体",
+          "size_pt": 10.5,
+          "alignment": "center"
+        },
+        "page_number": {
+          "font": "Times New Roman",
+          "size_pt": 10.5,
+          "alignment": "center"
+        },
+        "odd_even": true
+      }
+    },
+    {
+      "id": "page-number-segments",
+      "type": "page_number_segments",
+      "target": "all",
+      "expected": {
+        "front_format": "roman",
+        "body_format": "decimal",
+        "start": 1
+      }
+    },
+    {
+      "id": "page-header-pattern",
+      "type": "page_header_pattern",
+      "target": "all",
+      "expected": {
+        "even_text": "电子科技大学成都学院本科毕业论文"
       }
     },
     {
@@ -1068,15 +1096,6 @@
       "target": "table_caption",
       "expected": {
         "position": "above"
-      }
-    },
-    {
-      "id": "page-number",
-      "type": "page_number",
-      "target": "all",
-      "expected": {
-        "position": "footer",
-        "continuous": true
       }
     }
   ]

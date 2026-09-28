@@ -1,7 +1,7 @@
 from io import BytesIO
 from zipfile import ZIP_DEFLATED, ZipFile
 from docx import Document as BuildDocument
-from docx.shared import Inches
+from docx.shared import Inches, Pt
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml.ns import qn
 from PIL import Image
@@ -49,6 +49,62 @@ def test_parse_docx_extracts_headers_and_footers() -> None:
     parsed = parse_docx(BytesIO(stream.getvalue()))
     assert parsed.headers[0]["text"] == "页眉"
     assert parsed.footers[0]["text"] == "页脚"
+
+
+def test_parse_docx_exposes_header_footer_variants_and_effective_style() -> None:
+    source = BuildDocument()
+    source.settings.odd_and_even_pages_header_footer = True
+    section = source.sections[0]
+    section.different_first_page_header_footer = True
+    source.add_paragraph("摘要")
+    first = section.first_page_header.paragraphs[0]
+    first.text = "摘 要"
+    first.alignment = 1
+    first.runs[0].font.name = "宋体"
+    first.runs[0].font.size = Pt(10.5)
+    section.header.paragraphs[0].text = "奇数页"
+    section.even_page_header.paragraphs[0].text = "偶数页"
+    footer = section.first_page_footer.paragraphs[0]
+    footer.alignment = 1
+    page_run = footer.add_run("Ⅰ")
+    page_run.font.name = "Times New Roman"
+    page_run.font.size = Pt(10.5)
+    _add_page_field(footer)
+
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    first_header = next(item for item in parsed.headers if item["variant"] == "first")
+    first_footer = next(item for item in parsed.footers if item["variant"] == "first")
+    assert first_header["paragraphs"][0]["format"]["alignment"] == "center"
+    assert first_header["paragraphs"][0]["runs"][0]["font"]["effective"] == "宋体"
+    assert first_header["paragraphs"][0]["runs"][0]["size_pt"] == 10.5
+    assert first_footer["paragraphs"][0]["runs"][0]["font"]["effective"] == "Times New Roman"
+    assert first_footer["paragraphs"][0]["runs"][0]["size_pt"] == 10.5
+    assert {item["variant"] for item in parsed.headers} == {"first", "odd", "even"}
+    assert parsed.sections[0]["different_first_page_header_footer"] is True
+    assert parsed.sections[0]["odd_and_even_pages_header_footer"] is True
+
+
+def test_parse_docx_selects_only_active_page_variant_and_field() -> None:
+    source = BuildDocument()
+    source.settings.odd_and_even_pages_header_footer = True
+    section = source.sections[0]
+    section.different_first_page_header_footer = True
+    source.add_paragraph("第一页")
+    second = source.add_paragraph("第二页")
+    _add_last_rendered_page_break(second)
+    third = source.add_paragraph("第三页")
+    _add_last_rendered_page_break(third)
+    section.first_page_header.paragraphs[0].text = "首页"
+    section.header.paragraphs[0].text = "奇页"
+    section.even_page_header.paragraphs[0].text = "偶页"
+    _add_page_field(section.first_page_footer.paragraphs[0])
+    _add_page_field(section.footer.paragraphs[0])
+
+    parsed = parse_docx(BytesIO(_save_docx(source)))
+    assert [page["header_variant"] for page in parsed.pages] == ["first", "even", "odd"]
+    assert [page["header_text"] for page in parsed.pages] == ["首页", "偶页", "奇页"]
+    assert [page["position"] for page in parsed.pages] == ["footer", "none", "footer"]
+    assert all(page["page_source"] == "last_rendered" for page in parsed.pages)
 
 
 def test_parse_numbered_heading_exposes_numbering_metadata() -> None:

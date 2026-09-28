@@ -38,3 +38,12 @@ def test_heading_numbering_supports_punctuated_and_multilevel_decimal_labels() -
     errors = detect_heading_numbering(document, CheckRule(id="heading", type="heading_numbering", expected={}))
     assert errors[0].current == "1.3"
     assert errors[0].expected == "1.2"
+
+
+def test_heading_numbering_reads_multilevel_label_without_separator() -> None:
+    document = Document(document_id="D1", source_filename="x.docx", paragraphs=[
+        {"paragraph_id": "p-0001", "text": "第1章 引言", "heading": {"level": 1}, "numbering": None, "style": {"name": "Heading 1"}},
+        {"paragraph_id": "p-0002", "text": "1.1选题背景", "heading": {"level": 2}, "numbering": {"label": "1"}, "style": {"name": "Heading 2"}},
+        {"paragraph_id": "p-0003", "text": "1.2国内外研究现状", "heading": {"level": 2}, "numbering": {"label": "1"}, "style": {"name": "Heading 2"}},
+    ])
+    assert detect_heading_numbering(document, CheckRule(id="heading", type="heading_numbering", expected={})) == []

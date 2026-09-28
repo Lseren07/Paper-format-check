@@ -72,12 +72,14 @@ def _run_font_payload(run, style_font: dict) -> dict[str, str | None]:
 
 
 def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[str, str], *, location: dict) -> dict:
-    style_id = paragraph.style.style_id
+    style = paragraph.style
+    style_id = style.style_id if style is not None else "Normal"
+    style_name = style.name if style is not None else "Normal"
     effective = resolve_style(style_id, resources)
     runs = []
     for run in paragraph.runs:
         font = run.font
-        runs.append({"text": run.text, "font": _run_font_payload(run, effective.get("font") or {}), "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline})
+        runs.append({"text": run.text, "font": _run_font_payload(run, effective.get("font") or {}), "size_pt": font.size.pt if font.size else effective.get("size_pt"), "bold": run.bold if run.bold is not None else effective.get("bold"), "italic": run.italic if run.italic is not None else effective.get("italic"), "underline": run.underline, "fields": ["".join(node.itertext()).strip() for node in run._r.iter(qn("w:instrText"))]})
     pf = paragraph.paragraph_format
     style_format = effective.get("paragraph") or {}
     direct_ind = paragraph._p.pPr.ind if paragraph._p.pPr is not None and paragraph._p.pPr.ind is not None else None
@@ -108,13 +110,13 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
         "left_indent_pt": direct_or_style(pf.left_indent.pt if pf.left_indent is not None else None, "left_indent_pt"),
         "right_indent_pt": direct_or_style(pf.right_indent.pt if pf.right_indent is not None else None, "right_indent_pt"),
     }
-    heading_level = heading_level_from_style(paragraph.style.name) or heading_level_from_text(paragraph.text)
+    heading_level = heading_level_from_style(style_name) or heading_level_from_text(paragraph.text)
     return {
         "paragraph_id": f"p-{index:04d}", "index": index - 1, "text": paragraph.text,
-        "style": {"id": style_id, "name": paragraph.style.name, "based_on": resources.get("styles", {}).get(style_id, {}).get("based_on") or []},
+        "style": {"id": style_id, "name": style_name, "based_on": resources.get("styles", {}).get(style_id, {}).get("based_on") or []},
         "format": format_payload,
         "runs": runs, "drawings": _drawings(paragraph, relationships),
-        "heading": {"level": heading_level, "source": "style" if heading_level_from_style(paragraph.style.name) else ("text" if heading_level else None)},
+        "heading": {"level": heading_level, "source": "style" if heading_level_from_style(style_name) else ("text" if heading_level else None)},
         "numbering": None, "location": location, "fields": _instruction_fields(paragraph),
     }
 
@@ -195,15 +197,19 @@ def parse_docx(
                     paragraph_ids.append(paragraph_data["paragraph_id"])
                 cells.append({"row_index": ri, "column_index": ci, "text": cell.text, "paragraph_ids": paragraph_ids})
         tables.append({"table_index": ti, "rows": len(table.rows), "columns": len(table.columns), "cells": cells})
-    def _hf(obj, si, variant):
+    def _hf(obj, si, variant, part):
         content = "\n".join(p.text for p in obj.paragraphs)
-        fields = re.findall(r"w:instrText[^>]*>\s*([^<]+)", "".join(p._p.xml for p in obj.paragraphs))
-        return {"section_index": si, "variant": variant, "text": content, "fields": [{"type": f.strip(), "display_text": content} for f in fields]}
+        paragraphs_data = [
+            _paragraph_data(p, index + 1, resources, {}, location={"part": part, "section_index": si, "variant": variant})
+            for index, p in enumerate(obj.paragraphs)
+        ]
+        fields = ["".join(node.itertext()).strip() for node in obj._element.iter(qn("w:instrText"))]
+        return {"section_index": si, "variant": variant, "text": content, "fields": [{"type": field, "display_text": content} for field in fields], "paragraphs": paragraphs_data}
 
     headers, footers = [], []
     for si, section in enumerate(docx.sections):
-        headers.extend([_hf(section.header, si, "odd"), _hf(section.even_page_header, si, "even")])
-        footers.extend([_hf(section.footer, si, "odd"), _hf(section.even_page_footer, si, "even")])
+        headers.extend([_hf(section.header, si, "odd", "header"), _hf(section.even_page_header, si, "even", "header"), _hf(section.first_page_header, si, "first", "header")])
+        footers.extend([_hf(section.footer, si, "odd", "footer"), _hf(section.even_page_footer, si, "even", "footer"), _hf(section.first_page_footer, si, "first", "footer")])
     body_paras = [p for p in paragraphs if p["location"]["part"] == "document"]
     body_idx = 0
     table_idx = 0
@@ -219,7 +225,7 @@ def parse_docx(
                 tables[table_idx]["block_index"] = block_index
                 table_idx += 1
             block_index += 1
-    pages = extract_pages(docx, paragraphs, tables)
+    pages = extract_pages(docx, paragraphs, tables, headers=headers, footers=footers)
     structure = annotate_structure(paragraphs, tables)
     toc = [{"paragraph_id": p["paragraph_id"], "text": p["text"], "level": int(re.search(r"([1-9])", p["style"]["name"]).group(1)) if re.search(r"([1-9])", p["style"]["name"]) else None} for p in paragraphs if p["style"]["name"].lower().startswith("toc")]
     return Document(
@@ -231,5 +237,5 @@ def parse_docx(
         headers=headers,
         footers=footers,
         pages=pages,
-        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}, "header_distance_pt": section.header_distance.pt if section.header_distance else None, "footer_distance_pt": section.footer_distance.pt if section.footer_distance else None} for i, section in enumerate(docx.sections)],
+        sections=[{"index": i, "orientation": section.orientation.name.lower(), "page_width_pt": section.page_width.pt if section.page_width else None, "page_height_pt": section.page_height.pt if section.page_height else None, "margins_pt": {"top": section.top_margin.pt if section.top_margin else None, "right": section.right_margin.pt if section.right_margin else None, "bottom": section.bottom_margin.pt if section.bottom_margin else None, "left": section.left_margin.pt if section.left_margin else None}, "header_distance_pt": section.header_distance.pt if section.header_distance else None, "footer_distance_pt": section.footer_distance.pt if section.footer_distance else None, "different_first_page_header_footer": section.different_first_page_header_footer, "odd_and_even_pages_header_footer": docx.settings.odd_and_even_pages_header_footer} for i, section in enumerate(docx.sections)],
     )

@@ -19,7 +19,7 @@ def test_default_rules_enable_heading_toc_reference_and_page_margin_checks() -> 
     from backend.app.rules.loader import load_rules
 
     rule_types = {rule.type for rule in load_rules(Path("rules/default.json")).checks}
-    assert {"heading_numbering", "toc_consistency", "reference_baseline", "page_margin", "required_sections", "caption_format", "keyword_format", "header_text", "paragraph_spacing"}.issubset(rule_types)
+    assert {"heading_numbering", "toc_consistency", "reference_baseline", "page_margin", "required_sections", "caption_format", "keyword_format", "page_header_pattern", "paragraph_spacing"}.issubset(rule_types)
     assert "table_figure_format" not in rule_types
 
 

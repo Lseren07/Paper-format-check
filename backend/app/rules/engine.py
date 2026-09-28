@@ -8,6 +8,7 @@ from .detectors import (
     detect_reference_baseline, detect_size, detect_table_figure_format,
     detect_toc_consistency, detect_page_margin,
     detect_caption_position, detect_page_number,
+    detect_header_footer_format, detect_page_number_segments, detect_page_header_pattern,
 )
 from .spec_detectors import detect_caption_format, detect_header_text, detect_keyword_format, detect_required_sections
 
@@ -31,6 +32,9 @@ DETECTORS: dict[str, Detector] = {
     "header_text": detect_header_text,
     "caption_position": detect_caption_position,
     "page_number": detect_page_number,
+    "header_footer_format": detect_header_footer_format,
+    "page_number_segments": detect_page_number_segments,
+    "page_header_pattern": detect_page_header_pattern,
 }
 
 

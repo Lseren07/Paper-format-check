@@ -34,13 +34,13 @@ def test_default_rules_follow_cdu_page_and_heading_sizes() -> None:
     assert expected['foreign-body-font']['font'] == 'Times New Roman'
     assert expected['foreign-body-first-line-indent']['first_line_indent'] == '1字符'
     assert 'lowercase' not in expected['keywords-en-format']
-    assert expected['page-number'] == {'position': 'footer', 'continuous': True}
+    assert expected['page-number-segments'] == {'front_format': 'roman', 'body_format': 'decimal', 'start': 1}
     assert expected['title2-font']['font'] == '黑体'
     assert expected['title2-size']['size'] == '四号'
     assert expected['title2-alignment']['alignment'] == 'left'
     assert expected['title2-spacing'] == {'space_before_pt': 18, 'space_after_pt': 18}
     types = {check.type for check in rules.checks}
-    assert {'required_sections', 'caption_format', 'keyword_format', 'header_text', 'paragraph_spacing'}.issubset(types)
+    assert {'required_sections', 'caption_format', 'keyword_format', 'page_header_pattern', 'paragraph_spacing'}.issubset(types)
 
 
 def test_keyword_format_replaces_legacy_whole_paragraph_font_rules() -> None:
@@ -240,4 +240,5 @@ def test_required_sections_and_keywords_and_captions_follow_spec() -> None:
     assert 'required_sections_error' in types
     assert 'keyword_format_error' in types
     assert 'caption_format_error' in types
-    assert 'header_text_error' in types
+    # 页面级页眉检测需要可靠的 page/header_variant 数据；本单元夹具只覆盖段落规则。
+    assert 'header_text_error' not in types

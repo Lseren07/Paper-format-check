@@ -23,6 +23,9 @@ type FormatAnalysis = {
 };
 
 export const ERROR_TYPE_LABELS: Record<string, string> = {
+  header_footer_format_error: "页眉页脚格式错误",
+  page_number_segments_error: "页码分段错误",
+  page_header_pattern_error: "页眉模式错误",
   font_error: "字体错误",
   size_error: "字号错误",
   bold_error: "加粗错误",

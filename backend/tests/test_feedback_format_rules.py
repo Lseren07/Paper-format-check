@@ -139,6 +139,23 @@ def test_mixed_sentence_reports_latin_font_when_ascii_is_songti() -> None:
     assert errors[0].expected == 'Times New Roman'
 
 
+def test_heading_font_rule_does_not_apply_body_latin_font_fallback_to_numbering() -> None:
+    text = '1.1选题背景'
+    document = _document([_paragraph(
+        text=text,
+        heading=2,
+        style='Heading 2',
+        runs=[{
+            'text': text,
+            'font': {'effective': '黑体', 'ascii': '宋体', 'east_asia': '黑体'},
+            'size_pt': 14,
+            'bold': False,
+        }],
+    )])
+    rule = CheckRule(id='title2-font', type='font', target='title2', expected={'font': '黑体'})
+    assert detect_font(document, rule) == []
+
+
 def test_toc_consistency_compares_titles_by_heading_number() -> None:
     document = _document(
         [_paragraph(paragraph_id='p-0001', text='1.2 其他内容', heading=2, style='Heading 2')],
