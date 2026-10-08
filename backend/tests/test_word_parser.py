@@ -4,6 +4,7 @@ from docx import Document as BuildDocument
 from docx.shared import Inches, Pt
 from docx.enum.style import WD_STYLE_TYPE
 from docx.oxml.ns import qn
+from docx.oxml import parse_xml
 from PIL import Image
 
 import pytest
@@ -178,6 +179,29 @@ def test_parse_docx_keeps_drawing_relationship_metadata() -> None:
     assert drawing["target"].endswith(".png")
     assert drawing["width_emu"] > 0
     assert drawing["height_emu"] > 0
+
+
+def test_parse_docx_marks_omath_paragraph_as_formula() -> None:
+    source = BuildDocument()
+    paragraph = source.add_paragraph("E = mc2 (1)")
+    omath = parse_xml("<m:oMathPara xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math'><m:oMath><m:r><m:t>x</m:t></m:r></m:oMath></m:oMathPara>")
+    paragraph._p.append(omath)
+    stream = BytesIO(); source.save(stream)
+
+    parsed = parse_docx(BytesIO(stream.getvalue()))
+
+    assert parsed.paragraphs[0]["formula"] is True
+
+
+def test_parse_docx_does_not_mark_inline_math_in_body_as_formula_block() -> None:
+    source = BuildDocument()
+    paragraph = source.add_paragraph("根据以下公式可求出结果：")
+    paragraph._p.append(parse_xml("<m:oMath xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math'><m:r><m:t>x</m:t></m:r></m:oMath>"))
+    stream = BytesIO(); source.save(stream)
+
+    parsed = parse_docx(BytesIO(stream.getvalue()))
+
+    assert parsed.paragraphs[0]["formula"] is False
 
 
 def test_parse_docx_extracts_page_margins_and_table_cell_paragraphs() -> None:

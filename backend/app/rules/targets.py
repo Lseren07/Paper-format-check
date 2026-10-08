@@ -92,6 +92,14 @@ def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
     return set()
 
 
+def _caption_note_target(paragraph: dict[str, Any], previous_paragraph: dict[str, Any] | None) -> bool:
+    text = paragraph_text(paragraph)
+    style = _style_name(paragraph).lower()
+    if not re.match(r"^(?:注|附注)\s*[：:]", text) and not any(token in style for token in ("图注", "表注", "caption note")):
+        return False
+    return previous_paragraph is not None and bool(CAPTION_RE.match(paragraph_text(previous_paragraph)))
+
+
 def _skip_as_body(paragraph: dict[str, Any]) -> bool:
     style = _style_name(paragraph)
     text = paragraph_text(paragraph)
@@ -134,6 +142,7 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
     mapping: dict[str, set[str]] = {}
     region = "body"
     seen_chapter = False
+    previous_document_paragraph: dict[str, Any] | None = None
     for paragraph in document.paragraphs:
         pid = str(paragraph.get("paragraph_id", ""))
         if _location_part(paragraph) != "document":
@@ -184,7 +193,9 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         elif structure == "body":
             level = _heading_level(paragraph)
             note = _note_caption_targets(paragraph)
-            if note:
+            if _caption_note_target(paragraph, previous_document_paragraph):
+                assigned = {"caption-note"}
+            elif note:
                 assigned = note
             elif _skip_as_body(paragraph):
                 assigned = set()
@@ -214,6 +225,7 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         elif structure == "table":
             assigned = set()
         mapping[pid] = assigned
+        previous_document_paragraph = paragraph
     return mapping
 
 

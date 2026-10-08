@@ -125,3 +125,19 @@ def test_default_rules_register_confirmed_header_page_checks_without_unstated_st
     assert checks["page-header-pattern"].expected["even_text"] == "电子科技大学成都学院本科毕业论文"
     assert all("character_spacing" not in check.type for check in rules.checks)
     assert "body_header_font" not in checks
+
+
+def test_front_matter_header_text_matches_each_structure_title() -> None:
+    document = Document(
+        document_id="D1", source_filename="x.docx",
+        paragraphs=[{"paragraph_id": "p1", "text": "摘要", "structure": "abstract", "structure_role": "title", "page_index": 0}],
+        pages=[{"page_index": 0, "section_index": 0, "paragraph_ids": ["p1"], "header_variant": "odd", "footer_variant": "odd", "page_source": "last_rendered"}],
+        headers=[{"section_index": 0, "variant": "odd", "text": "目录", "paragraphs": [_paragraph("目录", font="宋体", size=10.5, alignment="center")]}],
+    )
+
+    errors = _run(document, "header_footer_format", {"front_header": {
+        "font": "宋体", "size_pt": 10.5, "alignment": "center",
+        "text_by_structure": {"abstract": "摘要", "abstract_en": "ABSTRACT", "toc": "目录"},
+    }})
+
+    assert any(error.location == "header:text" and error.expected == "摘要" for error in errors)

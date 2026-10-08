@@ -70,6 +70,10 @@ ERROR_TYPE_LABELS = {
     "table_figure_format_error": "图/表格式",
     "caption_position_error": "题注位置",
     "page_number_error": "页码",
+    "abstract_length_error": "摘要篇幅",
+    "abstract_consistency_error": "摘要中英文配对",
+    "page_break_after_heading_error": "章节分页",
+    "formula_format_error": "公式格式",
 }
 
 

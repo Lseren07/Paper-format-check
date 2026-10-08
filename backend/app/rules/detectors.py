@@ -306,6 +306,14 @@ def detect_heading_numbering(document: Document, rule: CheckRule) -> list[ErrorI
         parts = _heading_number_parts(paragraph)
         if parts is None:
             continue
+        if rule.expected.get("require_title"):
+            text = paragraph_text(paragraph)
+            label = str((paragraph.get("numbering") or {}).get("label") or "")
+            chapter_title = re.match(r"^第\s*[一二三四五六七八九十百零\d]+\s*章\s*(\S.*)$", text)
+            decimal_title = re.match(r"^\s*\d+(?:\.\d+)*[.)、．:]?\s*([^\d.\s].*)$", text)
+            has_title = bool(chapter_title or decimal_title or (label and text and not re.match(r"^\s*(?:第\s*\d+\s*章|\d+(?:\.\d+)*)\s*$", text)))
+            if not has_title:
+                errors.append(_format_error(rule, paragraph, "missing-title", "title"))
         parent, current = parts[:-1], parts[-1]
         expected = expected_by_parent.get(parent, 0) + 1
         expected_by_parent[parent] = current
@@ -431,12 +439,16 @@ def detect_reference_baseline(document: Document, rule: CheckRule) -> list[Error
     expected = 1
     errors = []
     in_references = False
+    reference_numbers: set[int] = set()
+    citation_numbers: list[tuple[str, int]] = []
     for paragraph in document.paragraphs:
         style = paragraph.get("style", {}).get("name", "")
         text = paragraph.get("text", "")
         if "参考文献" in text.strip():
             in_references = True
             continue
+        if not in_references and rule.expected.get("check_citations"):
+            citation_numbers.extend((paragraph.get("paragraph_id", "paragraph"), int(number)) for number in re.findall(r"\[(\d+)\]", text))
         match = re.match(r"\[(\d+)\]", text)
         has_reference_style = "reference" in style.lower() or "参考文献" in style
         if match is None or not (has_reference_style or in_references):
@@ -445,6 +457,18 @@ def detect_reference_baseline(document: Document, rule: CheckRule) -> list[Error
         if current != expected:
             errors.append(_format_error(rule, paragraph, current, expected))
         expected = current + 1
+        reference_numbers.add(current)
+        ending = rule.expected.get("entry_ending")
+        if ending and text.rstrip() and not text.rstrip().endswith(str(ending)):
+            errors.append(make_error(rule, location=f"{paragraph.get('paragraph_id', 'paragraph')}:ending", content=text, current=text.rstrip()[-1], expected=str(ending)))
+    if rule.expected.get("check_citations") and reference_numbers:
+        unknown = sorted({number for _, number in citation_numbers if number not in reference_numbers})
+        if unknown:
+            errors.append(make_error(rule, location="citation-order", content=",".join(map(str, unknown)), current=f"未著录序号 {unknown}", expected="正文引用序号均能在参考文献中找到"))
+        first_occurrence = list(dict.fromkeys(number for _, number in citation_numbers if number in reference_numbers))
+        expected_order = list(range(1, len(first_occurrence) + 1))
+        if first_occurrence and first_occurrence != expected_order:
+            errors.append(make_error(rule, location="citation-order", content=",".join(map(str, first_occurrence)), current=f"首次引用顺序 {first_occurrence}", expected=f"{expected_order}（按正文首次引用顺序编号）"))
     return errors
 
 
@@ -542,6 +566,7 @@ def detect_header_footer_format(document: Document, rule: CheckRule) -> list[Err
     expected_header = rule.expected.get("front_header") or {}
     expected_page = rule.expected.get("page_number") or {}
     errors: list[ErrorItem] = []
+    expected_texts = expected_header.get("text_by_structure") or {}
     front_page_indexes = {
         paragraph.get("page_index")
         for paragraph in document.paragraphs
@@ -554,6 +579,16 @@ def detect_header_footer_format(document: Document, rule: CheckRule) -> list[Err
         if header is None:
             errors.append(_format_mismatch(rule, location="header", current="missing", expected=expected_header))
         else:
+            if expected_texts:
+                page_structures = {
+                    str(paragraph.get("structure"))
+                    for paragraph in document.paragraphs
+                    if paragraph.get("page_index") == page.get("page_index") and paragraph.get("structure") in expected_texts
+                }
+                expected_text = next((str(expected_texts[name]) for name in ("abstract", "abstract_en", "toc") if name in page_structures), None)
+                actual_text = str(header.get("text") or "")
+                if expected_text is not None and re.sub(r"\s+", "", actual_text) != re.sub(r"\s+", "", expected_text):
+                    errors.append(_format_mismatch(rule, location="header:text", current=actual_text or "missing", expected=expected_text, content=actual_text))
             paragraphs = header.get("paragraphs") or []
             for paragraph in paragraphs:
                 content = paragraph.get("text", "")

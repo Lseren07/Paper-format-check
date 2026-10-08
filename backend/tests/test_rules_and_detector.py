@@ -18,17 +18,26 @@ def _plain(paragraph_id: str, text: str) -> dict:
 
 
 def valid_document(font: str) -> Document:
+    zh_abstract = "中文摘要" + "研究内容" * 50
+    en_abstract = "This is an abstract " * 10
     return Document(document_id="D1", source_filename="x.docx", paragraphs=[
         {
             "paragraph_id": "p-0001", "text": BODY_TEXT, "heading": {"level": None},
             "style": {"name": "Normal"}, "format": {},
             "runs": [{"text": BODY_TEXT, "font": {"effective": font}, "size_pt": None, "bold": None}],
         },
-        _plain("p-0002", "摘要"),
+        {**_plain("p-0002", "摘要"), "structure": "abstract", "structure_role": "title"},
+        {**_plain("p-0007", zh_abstract), "structure": "abstract", "structure_role": "body"},
+        {**_plain("p-0008", "ABSTRACT"), "structure": "abstract_en", "structure_role": "title"},
+        {**_plain("p-0009", en_abstract), "structure": "abstract_en", "structure_role": "body"},
         {**_plain("p-0003", "关键词：排队；系统；仿真"), "structure": "keywords"},
         _plain("p-0004", "目录"),
         _plain("p-0005", "参考文献"),
         _plain("p-0006", "致谢"),
+        {**_plain("p-0010", "外文资料原文"), "structure": "foreign", "structure_role": "title"},
+        {**_plain("p-0011", "Original material"), "structure": "foreign", "structure_role": "body"},
+        {**_plain("p-0012", "译文"), "structure": "foreign", "structure_role": "title"},
+        {**_plain("p-0013", "Translated material"), "structure": "foreign", "structure_role": "body"},
     ], pages=[{
         "section_index": 0, "number_format": None, "position": "footer",
         "fields": [{"instruction": "PAGE", "part": "footer"}],

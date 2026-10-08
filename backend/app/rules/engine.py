@@ -10,7 +10,11 @@ from .detectors import (
     detect_caption_position, detect_page_number,
     detect_header_footer_format, detect_page_number_segments, detect_page_header_pattern,
 )
-from .spec_detectors import detect_caption_format, detect_header_text, detect_keyword_format, detect_required_sections
+from .spec_detectors import (
+    detect_abstract_consistency, detect_abstract_length, detect_caption_format,
+    detect_formula_format, detect_header_text, detect_keyword_format,
+    detect_page_break_after_heading, detect_required_sections,
+)
 
 Detector = Callable[[Document, CheckRule], list[ErrorItem]]
 DETECTORS: dict[str, Detector] = {
@@ -27,7 +31,11 @@ DETECTORS: dict[str, Detector] = {
     "page_margin": detect_page_margin,
     "paragraph_spacing": detect_paragraph_spacing,
     "required_sections": detect_required_sections,
+    "abstract_length": detect_abstract_length,
+    "abstract_consistency": detect_abstract_consistency,
     "keyword_format": detect_keyword_format,
+    "formula_format": detect_formula_format,
+    "page_break_after_heading": detect_page_break_after_heading,
     "caption_format": detect_caption_format,
     "header_text": detect_header_text,
     "caption_position": detect_caption_position,

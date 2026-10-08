@@ -33,7 +33,9 @@ def test_default_rules_follow_cdu_page_and_heading_sizes() -> None:
     assert expected['foreign-title-size']['size'] == '小三'
     assert expected['foreign-body-font']['font'] == 'Times New Roman'
     assert expected['foreign-body-first-line-indent']['first_line_indent'] == '1字符'
-    assert 'lowercase' not in expected['keywords-en-format']
+    assert expected['keywords-en-format']['lowercase'] is True
+    assert expected['keywords-zh']['separator'] == 'semicolon'
+    assert expected['keywords-en-format']['separator'] == 'semicolon'
     assert expected['page-number-segments'] == {'front_format': 'roman', 'body_format': 'decimal', 'start': 1}
     assert expected['title2-font']['font'] == '黑体'
     assert expected['title2-size']['size'] == '四号'
@@ -53,6 +55,8 @@ def test_keyword_format_replaces_legacy_whole_paragraph_font_rules() -> None:
         'min': 3,
         'max': 8,
         'required': True,
+        'separator': 'semicolon',
+        'alignment': 'left',
         'first_line_indent': 0,
         'label': {'font': '宋体', 'size': '小四', 'bold': True},
         'content': {'font': '宋体', 'size': '小四'},
@@ -61,6 +65,9 @@ def test_keyword_format_replaces_legacy_whole_paragraph_font_rules() -> None:
         'pattern': r'^Keywords\s*[：:]',
         'min': 3,
         'max': 8,
+        'separator': 'semicolon',
+        'lowercase': True,
+        'alignment': 'left',
         'first_line_indent': 0,
         'label': {'font': 'Times New Roman', 'size': '小四', 'bold': True},
         'content': {'font': 'Times New Roman', 'size': '小四'},

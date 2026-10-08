@@ -59,7 +59,7 @@
 
 | id | 文件 | 说明 |
 | --- | --- | --- |
-| `default` | `default.json` | 现行唯一规则集，含 107 项检查与 `source.clauses` 条款追溯 |
+| `default` | `default.json` | 现行唯一规则集，含 111 项检查与 `source.clauses` 条款追溯 |
 
 > 旧版 `electronic-tech-cdu-v1.json` 已删除，不再维护；现行规则一律写在 `default.json`。
 > 加载器仍保留对旧结构（`page`/`body`/`headings`/`manual_checks`，没有 `checks` 字段）的翻译能力，
@@ -69,7 +69,7 @@
 
 ## 自动检测项
 
-当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`paragraph_spacing`、`page_margin`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`、`required_sections`、`keyword_format`、`caption_format`、`header_text`、`caption_position`、`page_number`。
+当前支持的检测器：`font`、`size`、`bold`、`alignment`、`line_spacing`、`paragraph_indent`、`paragraph_spacing`、`page_margin`、`heading_numbering`、`toc_consistency`、`table_figure_format`、`reference_baseline`、`required_sections`、`abstract_length`、`abstract_consistency`、`keyword_format`、`caption_format`、`header_text`、`caption_position`、`page_number`、`page_break_after_heading`、`formula_format`。
 
 `default.json` 覆盖的学校规范包括：
 
@@ -78,12 +78,16 @@
 - 标题：第1章黑体小三居中 30/30；1.1 黑体四号顶格 18/18；1.1.1 / 1.1.1.1 黑体小四，12/12 与 6/6
 - 文首文尾标题：摘要/参考文献/致谢/附录/结论为黑体小三居中；ABSTRACT 为 Times New Roman 小三；目录标题为宋体小二（不是黑体小三）
 - 英文摘要正文：Times New Roman 小四、首行缩进 1 字符、固定值 20 磅
-- 关键词：3–8 个、分号分隔、末尾无标点；英文 Keywords 小写（出现时检查，专科论文不强制英文摘要）
+- 关键词：3–8 个、分号分隔、末尾无标点；英文 Keywords 内容小写（出现时检查，专科论文不强制英文摘要）
+- 摘要：中文 200–300 个汉字、英文不超过 250 个英文单词；中英文摘要是否语义一致仍需人工核对
 - 参考文献条目：宋体五号、悬挂缩进 1 字符、固定值 17 磅、段前 3 磅
 - 图/表题：宋体五号居中；图题段前 6/段后 12，表题段前 12/段后 6
-- 必备结构：摘要、目录、参考文献、致谢
+- 必备结构（可从 DOCX 正文识别部分）：中英文摘要、目录、参考文献、致谢、外文原文、译文；附录可选并允许缺省
 - 偶数页眉包含「电子科技大学成都学院本科毕业论文」
-- 标题编号连续性（含「第N章」）与目录/参考文献序号基线
+- 标题编号连续性（含「第N章」）与标题必须有题名；章节分页只在文档带有可靠分页数据时检查
+- 公式对象居中、段前后 6 磅、最小行距 20 磅，并要求末尾括号编号
+- 图表附注识别为独立目标，按宋体五号居中检查
+- 参考文献条目末尾句点；正文引用与参考文献著录顺序属于建议项，专项规则集可启用引用对应检查
 
 规则引擎只依据解析后的内存 `Document` 运行。字号可用 pt 或中文字号（如 `小四`），缩进可用 pt 或「字符」并优先采用 DOCX 原始字符缩进；对缺失的格式信息不报错。图表列数等约束只有显式配置 `table_figure_format` 才会执行，默认规则不启用该项。
 
@@ -97,5 +101,10 @@
 - 字数：工科/艺术设计类设计型不少于 8000 字，论文型及理科不少于 10000 字，人文社科不少于 12000 字
 - 外文资料原文与译文、公式编号位置、量和单位全文统一
 - 参考文献著录内容是否符合《中国高校自然科学学报编排规范》
+- 封面题目/字段的具体位置、行距 1.5 倍和下划线 8/10cm（当前解析器没有稳定的模板坐标与下划线长度数据）
+- 任务书、进度计划表、开题报告、检查表、评分表、诚信声明、版权授权书、封底是否真实存在及填写完整（这些通常是装订附件，不在正文 DOCX 结构中）
+- 每行 32–34 字、每页 29–31 行、印刷版心 146×220mm、双面印刷（Word 分页和打印结果不能仅凭 DOCX 稳定断言）
+- 公式右端编号的精确位置、脚注/注释的编号与脚注 XML 版式、图表是否在正文中被引用
 
 复杂目录域、中文数字编号和嵌入 Excel 图表仍需人工核对或后续增强。
+章节分页检测器 `page_break_after_heading` 已实现，但默认规则集不启用；没有 Word 保存的分页标记时页码是估算值，不据此判错。

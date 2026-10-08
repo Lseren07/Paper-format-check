@@ -98,6 +98,7 @@ def _ppr(ppr: ET.Element | None) -> dict:
                 raw = float(line)
                 rule = (spacing.get(f"{W}lineRule") or "auto").lower()
                 out["line_spacing"] = raw / 20 if rule in {"exact", "atleast"} else raw / 240
+                out["line_spacing_rule"] = {"auto": "multiple", "atleast": "atLeast", "exact": "exact"}.get(rule, rule)
             except ValueError:
                 pass
     ind = ppr.find(f"{W}ind")

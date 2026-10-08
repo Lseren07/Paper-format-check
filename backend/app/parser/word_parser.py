@@ -88,6 +88,7 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
     direct_hanging_chars = direct_ind.get(f"{ns}hangingChars") if direct_ind is not None else None
     direct_hanging_twips = direct_ind.get(f"{ns}hanging") if direct_ind is not None else None
     direct_alignment = paragraph.alignment.name.lower() if paragraph.alignment is not None else None
+    page_break_before = bool(paragraph._p.pPr is not None and paragraph._p.pPr.pageBreakBefore is not None)
     direct_first_pt = pf.first_line_indent.pt if pf.first_line_indent is not None else None
     direct_hanging_pt = None
     if direct_first_pt is not None and direct_first_pt < 0:
@@ -101,6 +102,8 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
     format_payload = {
         "alignment": direct_or_style(direct_alignment, "alignment"),
         "line_spacing": direct_or_style(direct_spacing_pt, "line_spacing"),
+        "line_spacing_rule": style_format.get("line_spacing_rule"),
+        "page_break_before": page_break_before,
         "space_before_pt": direct_or_style(pf.space_before.pt if pf.space_before is not None else None, "space_before_pt"),
         "space_after_pt": direct_or_style(pf.space_after.pt if pf.space_after is not None else None, "space_after_pt"),
         "first_line_indent_pt": direct_or_style(direct_first_pt, "first_line_indent_pt"),
@@ -116,6 +119,7 @@ def _paragraph_data(paragraph, index: int, resources: dict, relationships: dict[
         "style": {"id": style_id, "name": style_name, "based_on": resources.get("styles", {}).get(style_id, {}).get("based_on") or []},
         "format": format_payload,
         "runs": runs, "drawings": _drawings(paragraph, relationships),
+        "formula": any(node.tag == "{http://schemas.openxmlformats.org/officeDocument/2006/math}oMathPara" for node in paragraph._p.iter()),
         "heading": {"level": heading_level, "source": "style" if heading_level_from_style(style_name) else ("text" if heading_level else None)},
         "numbering": None, "location": location, "fields": _instruction_fields(paragraph),
     }

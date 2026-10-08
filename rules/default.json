@@ -25,6 +25,7 @@
         "rules": [
           "cover-title-font",
           "cover-title-size",
+          "cover-title-line-spacing",
           "abstract-title-font",
           "abstract-title-size",
           "abstract-title-alignment",
@@ -46,7 +47,10 @@
           "abstract-indent",
           "abstract-alignment",
           "keywords-zh",
-          "keywords-en-format"
+          "keywords-en-format",
+          "abstract-length-zh",
+          "abstract-length-en",
+          "abstract-pair"
         ],
         "automated": true
       },
@@ -101,7 +105,8 @@
           "conclusion-title-size",
           "conclusion-title-alignment",
           "conclusion-title-spacing",
-          "heading-numbering"
+          "heading-numbering",
+          "formula-format"
         ],
         "automated": true
       },
@@ -135,7 +140,8 @@
           "references-spacing",
           "references-line-spacing",
           "references-hanging-indent",
-          "reference-baseline"
+          "reference-baseline",
+          "reference-entry-ending"
         ],
         "automated": true
       },
@@ -155,7 +161,10 @@
           "table-caption-font",
           "table-caption-size",
           "table-caption-alignment",
-          "table-caption-position"
+          "table-caption-position",
+          "caption-note-font",
+          "caption-note-size",
+          "caption-note-alignment"
         ],
         "automated": true
       },
@@ -852,6 +861,8 @@
         "min": 3,
         "max": 8,
         "required": true,
+        "separator": "semicolon",
+        "alignment": "left",
         "first_line_indent": 0,
         "label": {
           "font": "宋体",
@@ -872,6 +883,9 @@
         "pattern": "^Keywords\\s*[：:]",
         "min": 3,
         "max": 8,
+        "separator": "semicolon",
+        "lowercase": true,
+        "alignment": "left",
         "first_line_indent": 0,
         "label": {
           "font": "Times New Roman",
@@ -926,10 +940,16 @@
       "expected": {
         "titles": [
           "摘要",
+          "ABSTRACT",
           "目录",
           "参考文献",
-          "致谢"
-        ]
+          "致谢",
+          "外文资料原文",
+          "译文"
+        ],
+        "optional_titles": ["附录"],
+        "order": ["摘要", "ABSTRACT", "目录", "参考文献", "致谢", "附录", "外文资料原文", "译文"],
+        "ordered": true
       }
     },
     {
@@ -940,7 +960,12 @@
         "front_header": {
           "font": "宋体",
           "size_pt": 10.5,
-          "alignment": "center"
+          "alignment": "center",
+          "text_by_structure": {
+            "abstract": "摘要",
+            "abstract_en": "ABSTRACT",
+            "toc": "目录"
+          }
         },
         "page_number": {
           "font": "Times New Roman",
@@ -972,7 +997,9 @@
       "id": "heading-numbering",
       "type": "heading_numbering",
       "target": "all",
-      "expected": {}
+      "expected": {
+        "require_title": true
+      }
     },
     {
       "id": "toc-consistency",
@@ -1000,6 +1027,14 @@
       "target": "cover_title",
       "expected": {
         "size": "三号"
+      }
+    },
+    {
+      "id": "cover-title-line-spacing",
+      "type": "line_spacing",
+      "target": "cover_title",
+      "expected": {
+        "line_spacing": 1.5
       }
     },
     {
@@ -1096,6 +1131,78 @@
       "target": "table_caption",
       "expected": {
         "position": "above"
+      }
+    },
+    {
+      "id": "abstract-length-zh",
+      "type": "abstract_length",
+      "target": "abstract",
+      "expected": {
+        "min": 200,
+        "max": 300,
+        "unit": "cjk_characters"
+      }
+    },
+    {
+      "id": "abstract-length-en",
+      "type": "abstract_length",
+      "target": "abstract-en-body",
+      "expected": {
+        "max": 250,
+        "unit": "english_words"
+      }
+    },
+    {
+      "id": "abstract-pair",
+      "type": "abstract_consistency",
+      "target": "all",
+      "expected": {
+        "require_both": true
+      }
+    },
+    {
+      "id": "formula-format",
+      "type": "formula_format",
+      "target": "all",
+      "expected": {
+        "alignment": "center",
+        "space_before_pt": 6,
+        "space_after_pt": 6,
+        "min_line_spacing": 20,
+        "line_spacing_rule": "atLeast",
+        "number_pattern": "\\(\\d+(?:[-.]\\d+)?\\)$"
+      }
+    },
+    {
+      "id": "reference-entry-ending",
+      "type": "reference_baseline",
+      "target": "all",
+      "expected": {
+        "entry_ending": "."
+      }
+    },
+    {
+      "id": "caption-note-font",
+      "type": "font",
+      "target": "caption-note",
+      "expected": {
+        "font": "宋体"
+      }
+    },
+    {
+      "id": "caption-note-size",
+      "type": "size",
+      "target": "caption-note",
+      "expected": {
+        "size": "五号"
+      }
+    },
+    {
+      "id": "caption-note-alignment",
+      "type": "alignment",
+      "target": "caption-note",
+      "expected": {
+        "alignment": "center"
       }
     }
   ]
