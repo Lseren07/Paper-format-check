@@ -26,6 +26,7 @@ from ..services.task_store import TaskRecord
 REPORT_DIR = Path(os.getenv("REPORT_DIR", "reports"))
 REPORT_FONT_NAME = "PaperCheckerChinese"
 REPORT_FONT_PATH = Path(os.getenv("REPORT_FONT_PATH", r"C:\Windows\Fonts\simhei.ttf"))
+ERROR_EXCERPT_LENGTH = 40
 
 
 def report_id_for(task_id: str) -> str:
@@ -70,7 +71,7 @@ ERROR_TYPE_LABELS = {
     "table_figure_format_error": "图/表格式",
     "caption_position_error": "题注位置",
     "page_number_error": "页码",
-    "abstract_length_error": "摘要篇幅",
+    "abstract_length_error": "字数问题",
     "abstract_consistency_error": "摘要中英文配对",
     "page_break_after_heading_error": "章节分页",
     "formula_format_error": "公式格式",
@@ -79,6 +80,12 @@ ERROR_TYPE_LABELS = {
 
 def _text(value: object) -> str:
     return html.escape(str(value if value is not None else ""))
+
+
+def error_excerpt(content: str) -> str:
+    if len(content) <= ERROR_EXCERPT_LENGTH:
+        return content
+    return f"{content[:ERROR_EXCERPT_LENGTH]}……"
 
 
 def _error_type_label(error_type: str) -> str:
@@ -137,7 +144,7 @@ def build_report_story(
         Paragraph(f"检测状态：{_text(task.status)}", styles["body"]),
         Spacer(1, 4 * mm),
         Paragraph("检测结果", styles["heading"]),
-        Paragraph(f"共发现 {len(task.errors)} 个格式问题。" if task.errors else "未发现格式问题，检测通过。", styles["body"]),
+        Paragraph(f"共发现 {len(task.errors)} 个问题。" if task.errors else "未发现格式问题，检测通过。", styles["body"]),
     ]
     if task.errors:
         clause_mapping = clauses_by_rule_id(rules)
@@ -146,7 +153,7 @@ def build_report_story(
             rows.append([
                 Paragraph(_text(_error_type_label(error.type)), styles["cell"]),
                 Paragraph(_text(error.location), styles["cell"]),
-                Paragraph(_text(error.content or "（无文本）"), styles["cell"]),
+                Paragraph(_text(error_excerpt(error.content) or "（无文本）"), styles["cell"]),
                 Paragraph(_text(error.current), styles["cell"]),
                 Paragraph(_text(error.expected), styles["cell"]),
                 Paragraph(_text(_clause_reference(error.rule_id, clause_mapping)), styles["cell"]),
@@ -193,7 +200,7 @@ def build_markdown_report(task: TaskRecord, *, rules: RuleSet, rule_file: str) -
         "",
         "## 检测结果",
         "",
-        f"{'共发现 ' + str(len(task.errors)) + ' 个格式问题。' if task.errors else '未发现格式问题，检测通过。'}",
+        f"{'共发现 ' + str(len(task.errors)) + ' 个问题。' if task.errors else '未发现格式问题，检测通过。'}",
         "",
     ]
     if task.errors:
@@ -205,7 +212,7 @@ def build_markdown_report(task: TaskRecord, *, rules: RuleSet, rule_file: str) -
             lines.append("| " + " | ".join([
                 _markdown_cell(_error_type_label(error.type)),
                 _markdown_cell(error.location),
-                _markdown_cell(error.content or "（无文本）"),
+                _markdown_cell(error_excerpt(error.content) or "（无文本）"),
                 _markdown_cell(error.current),
                 _markdown_cell(error.expected),
                 _markdown_cell(_clause_reference(error.rule_id, clause_mapping)),

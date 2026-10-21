@@ -119,6 +119,16 @@ def _story_text(task: TaskRecord) -> str:
     return "\n".join(parts)
 
 
+def test_report_shortens_long_error_text() -> None:
+    long_text = "随着餐饮行业数字化转型不断深入，企业需要通过信息化系统提升库存管理、采购协同和智能推荐能力，并持续优化经营效率。"
+    text = _story_text(TaskRecord(task_id="Texcerpt", filename="论文.docx", status="completed", errors=[error(content=long_text)]))
+
+    assert long_text[:40] + "……" in text
+    assert long_text not in text
+    assert "共发现 1 个问题。" in text
+    assert "共发现 1 个格式问题。" not in text
+
+
 def test_report_results_come_first_and_basis_is_name_only() -> None:
     task = TaskRecord(task_id="Tbasis", filename="论文.docx", status="completed", errors=[error()])
     text = _story_text(task)

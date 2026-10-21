@@ -14,6 +14,7 @@ def _paragraph(
     font="Times New Roman",
     size_pt=12,
     indent_pt=12,
+    alignment=None,
     style="Normal",
     structure=None,
     role=None,
@@ -23,7 +24,7 @@ def _paragraph(
         "text": text,
         "style": {"name": style},
         "heading": {"level": heading},
-        "format": {"first_line_indent_pt": indent_pt},
+        "format": {"first_line_indent_pt": indent_pt, "alignment": alignment},
         "runs": [{"text": text, "font": {"effective": font}, "size_pt": size_pt, "bold": None}],
         "location": {"part": "document"},
     }
@@ -80,7 +81,7 @@ def test_foreign_materials_are_not_checked_as_chinese_body() -> None:
         _paragraph("p-0004", "1 Introduction", heading=2, indent_pt=0, size_pt=12),
         _paragraph("p-0005", "The original English text.", heading=None, indent_pt=12, size_pt=12),
         _paragraph("p-0006", "译文", heading=1, font="黑体", indent_pt=0, size_pt=15),
-        _paragraph("p-0007", "This is the translated text.", heading=None, indent_pt=12, size_pt=12),
+        _paragraph("p-0007", "这是中文译文。", heading=None, indent_pt=24, size_pt=12, font="宋体"),
     ]
     annotate_structure(paragraphs)
     document = _document(paragraphs)
@@ -88,9 +89,9 @@ def test_foreign_materials_are_not_checked_as_chinese_body() -> None:
     assert assigned["p-0003"] == {"foreign-title"}
     assert "body" not in assigned["p-0004"]
     assert "title2" not in assigned["p-0004"]
-    assert assigned["p-0005"] == {"foreign-body"}
+    assert assigned["p-0005"] == {"foreign-body", "foreign-original-body"}
     assert assigned["p-0006"] == {"foreign-title"}
-    assert assigned["p-0007"] == {"foreign-body"}
+    assert assigned["p-0007"] == {"foreign-body", "foreign-translation-body"}
 
     rules = RuleSet(schema_version="1.0", name="t", checks=[
         CheckRule(id="body-font", type="font", target="body", expected={"font": "宋体"}),
@@ -99,12 +100,54 @@ def test_foreign_materials_are_not_checked_as_chinese_body() -> None:
         CheckRule(id="foreign-title-font", type="font", target="foreign-title", expected={"font": "黑体"}),
         CheckRule(id="foreign-title-size", type="size", target="foreign-title", expected={"size": "小三"}),
         CheckRule(id="foreign-body-font", type="font", target="foreign-body", expected={"font": "Times New Roman"}),
-        CheckRule(id="foreign-body-first-line-indent", type="paragraph_indent", target="foreign-body", expected={"first_line_indent": "1字符"}),
+        CheckRule(id="foreign-original-first-line-indent", type="paragraph_indent", target="foreign-original-body", expected={"first_line_indent": "1字符"}),
+        CheckRule(id="foreign-translation-first-line-indent", type="paragraph_indent", target="foreign-translation-body", expected={"first_line_indent": "2字符"}),
     ])
     errors = check_document(document, rules)
     assert [error.rule_id for error in errors] == []
     assert detect_font(document, rules.checks[0]) == []
     assert detect_size(document, rules.checks[1]) == []
+
+
+def test_translation_region_continues_after_its_inner_abstract_label() -> None:
+    paragraphs = [
+        _paragraph("p-0001", "摘要", heading=None, indent_pt=0),
+        _paragraph("p-0002", "中文摘要正文。", heading=None),
+        _paragraph("p-0003", "关键词：格式检测", heading=None),
+        _paragraph("p-0004", "ABSTRACT", heading=None, indent_pt=0),
+        _paragraph("p-0005", "English abstract.", heading=None),
+        _paragraph("p-0006", "目录", heading=1, font="黑体", indent_pt=0),
+        _paragraph("p-0007", "第一章 绪论", heading=1, font="黑体", indent_pt=0),
+        _paragraph("p-0008", "外文资料原文", heading=1, font="黑体", indent_pt=0),
+        _paragraph("p-0009", "1 Introduction", heading=2, indent_pt=0),
+        _paragraph("p-0010", "Original text.", heading=None),
+        _paragraph("p-0011", "译文", heading=1, font="黑体", indent_pt=0),
+        _paragraph("p-0012", "Translated article title", heading=None, indent_pt=0, alignment="center"),
+        _paragraph("p-0013", "作者姓名", heading=None, indent_pt=0, alignment="center"),
+        _paragraph("p-0014", "摘要：", heading=None, indent_pt=24),
+        _paragraph("p-0015", "这是译文中的中文摘要正文。", heading=None, font="宋体", indent_pt=24),
+        _paragraph("p-0016", "方法：", heading=None, indent_pt=24),
+        _paragraph("p-0017", "这是译文中的中文方法正文。", heading=None, font="宋体", indent_pt=24),
+        _paragraph("p-0018", "参考文献", heading=1, font="黑体", indent_pt=0),
+    ]
+
+    annotate_structure(paragraphs)
+    assigned = paragraph_targets(_document(paragraphs))
+
+    assert paragraphs[13]["structure"] == "foreign"
+    assert paragraphs[14]["structure"] == "foreign"
+    assert paragraphs[16]["structure"] == "foreign"
+    assert "foreign-translation-body" not in assigned["p-0012"]
+    assert "foreign-translation-body" not in assigned["p-0013"]
+    assert "foreign-translation-body" in assigned["p-0015"]
+    assert "foreign-translation-body" in assigned["p-0017"]
+    translation_indent = CheckRule(
+        id="foreign-translation-first-line-indent",
+        type="paragraph_indent",
+        target="foreign-translation-body",
+        expected={"first_line_indent": "2字符", "missing_is_zero": True},
+    )
+    assert detect_paragraph_indent(_document(paragraphs), translation_indent) == []
 
 
 def test_cover_title_uses_title_line_not_school_name() -> None:

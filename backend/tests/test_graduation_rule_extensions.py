@@ -56,6 +56,25 @@ def test_required_sections_does_not_match_unrelated_text_prefix():
     assert any(error.content == "摘要" and error.current == "missing" for error in errors)
 
 
+def test_required_sections_ignores_toc_entries_when_checking_body_order():
+    document = Document(document_id="D1", source_filename="x.docx", paragraphs=[
+        _paragraph("封面", structure="cover"),
+        _paragraph("ABSTRACT", structure="toc", style="TOC 1"),
+        _paragraph("摘要", structure="abstract"),
+        _paragraph("ABSTRACT", structure="abstract_en"),
+        _paragraph("目录", structure="body"),
+    ])
+    errors = detect_required_sections(document, CheckRule(
+        id="sections", type="required_sections", expected={
+            "titles": ["摘要", "ABSTRACT", "目录"],
+            "order": ["摘要", "ABSTRACT", "目录"],
+            "ordered": True,
+        }
+    ))
+
+    assert not any(error.current == "out-of-order" for error in errors)
+
+
 def test_optional_appendix_must_still_appear_before_foreign_original_when_present():
     document = Document(document_id="D1", source_filename="x.docx", paragraphs=[
         _paragraph("参考文献", structure="references"),
@@ -117,21 +136,37 @@ def test_abstract_pair_reports_missing_english_version_when_chinese_exists():
     assert errors[0].type == "abstract_consistency_error"
 
 
-def test_keyword_rule_rejects_comma_and_uppercase_english_keyword():
+def test_keyword_rule_allows_proper_nouns_and_still_checks_font_format():
     document = Document(document_id="D1", source_filename="x.docx", paragraphs=[
-        _paragraph("Keywords: Database, testing; system", structure="keywords_en", fmt={"first_line_indent_chars": 0}, runs=[
-            {"text": "Keywords: Database, testing; system", "font": {"effective": "Times New Roman"}, "size_pt": 12, "bold": True},
+        _paragraph("Keywords: Django; Vue3; system", structure="keywords_en", fmt={"first_line_indent_chars": 0}, runs=[
+            {"text": "Keywords: Django; Vue3; system", "font": {"effective": "Times New Roman"}, "size_pt": 12, "bold": True},
         ]),
     ])
     rule = CheckRule(id="keywords-en", type="keyword_format", target="keywords-en", expected={
-        "pattern": r"^Keywords\s*[：:]", "min": 3, "max": 8, "lowercase": True,
+        "pattern": r"^Keywords\s*[：:]", "min": 3, "max": 8,
         "separator": "semicolon",
+        "content": {"font": "Times New Roman", "size": "小四"},
     })
 
     errors = detect_keyword_format(document, rule)
 
-    assert any(error.current == "comma" for error in errors)
-    assert any(error.current == "Database" for error in errors)
+    assert errors == []
+
+
+def test_keyword_rule_still_reports_incorrect_english_keyword_font():
+    document = Document(document_id="D1", source_filename="x.docx", paragraphs=[
+        _paragraph("Keywords: Django; Vue3; system", structure="keywords_en", runs=[
+            {"text": "Keywords: Django; Vue3; system", "font": {"effective": "Arial"}, "size_pt": 12, "bold": True},
+        ]),
+    ])
+    errors = detect_keyword_format(document, CheckRule(
+        id="keywords-en", type="keyword_format", target="keywords-en", expected={
+            "pattern": r"^Keywords\s*[：:]", "min": 3, "max": 8,
+            "content": {"font": "Times New Roman", "size": "小四"},
+        }
+    ))
+
+    assert any(error.expected == "Times New Roman" for error in errors)
 
 
 def test_heading_rule_rejects_number_without_heading_title():

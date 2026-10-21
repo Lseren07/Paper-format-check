@@ -133,7 +133,8 @@
           "foreign-title-font",
           "foreign-title-size",
           "foreign-body-font",
-          "foreign-body-first-line-indent",
+          "foreign-original-first-line-indent",
+          "foreign-translation-first-line-indent",
           "references-font",
           "references-size",
           "references-alignment",
@@ -600,11 +601,20 @@
       }
     },
     {
-      "id": "foreign-body-first-line-indent",
+      "id": "foreign-original-first-line-indent",
       "type": "paragraph_indent",
-      "target": "foreign-body",
+      "target": "foreign-original-body",
       "expected": {
         "first_line_indent": "1字符"
+      }
+    },
+    {
+      "id": "foreign-translation-first-line-indent",
+      "type": "paragraph_indent",
+      "target": "foreign-translation-body",
+      "expected": {
+        "first_line_indent": "2字符",
+        "missing_is_zero": true
       }
     },
     {
@@ -884,7 +894,6 @@
         "min": 3,
         "max": 8,
         "separator": "semicolon",
-        "lowercase": true,
         "alignment": "left",
         "first_line_indent": 0,
         "label": {

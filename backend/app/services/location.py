@@ -6,9 +6,12 @@ import re
 
 from ..models.contracts import Document, ErrorItem
 
-_PARAGRAPH_RE = re.compile(r"^(p-\d+)(?::run-\d+)?$")
+_PARAGRAPH_RE = re.compile(r"^(p-\d+)(?::.*)?$")
 _MARGIN_RE = re.compile(r"^section-\d+:margin-(top|right|bottom|left)$")
 _TABLE_RE = re.compile(r"^table-(\d+)$")
+_TOC_ITEM_RE = re.compile(r"^toc:(\d+)$")
+_HEADER_PAGE_RE = re.compile(r"^header:page-(\d+)$")
+_SECTION_ODD_EVEN_RE = re.compile(r"^section-(\d+):odd-even$")
 _SECTION_FIELD_RE = re.compile(r"^section-\d+:(width_cm|height_cm|header|footer)$")
 _DIGITS = "零一二三四五六七八九"
 
@@ -37,6 +40,24 @@ _STRUCTURE_LABELS = {
 
 
 def format_location(document: Document, location: str) -> str:
+    if location == "abstract-length":
+        return "摘要文本"
+    if location == "abstract-pair":
+        return "中英文摘要"
+    if location == "citation-order":
+        return "正文引用"
+    toc_item = _TOC_ITEM_RE.fullmatch(location)
+    if toc_item:
+        return f"目录第{toc_item.group(1)}项"
+    header_page = _HEADER_PAGE_RE.fullmatch(location)
+    if header_page:
+        return f"第{header_page.group(1)}页页眉"
+    if location == "header:text":
+        return "页眉文字"
+    section_odd_even = _SECTION_ODD_EVEN_RE.fullmatch(location)
+    if section_odd_even:
+        section_index = int(section_odd_even.group(1))
+        return "奇偶页页眉设置" if section_index == 0 else f"第{section_index + 1}节奇偶页页眉设置"
     margin = _MARGIN_RE.fullmatch(location)
     if margin:
         return _MARGIN_LABELS[margin.group(1)]
@@ -50,6 +71,10 @@ def format_location(document: Document, location: str) -> str:
         return "关键词"
     if location == "structure":
         return "论文结构"
+    if location.startswith("structure:"):
+        title = location.partition(":")[2]
+        labels = {"ABSTRACT": "英文摘要", "ABSTRACT_CN": "中文摘要", "REFERENCES": "参考文献", "KEYWORDS": "关键词"}
+        return f"论文结构（{labels.get(title.upper(), title)}）"
     section_field = _SECTION_FIELD_RE.fullmatch(location)
     if section_field:
         return _SECTION_FIELD_LABELS[section_field.group(1)]

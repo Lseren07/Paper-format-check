@@ -40,6 +40,9 @@ export const ERROR_TYPE_LABELS: Record<string, string> = {
   page_margin_error: "页边距错误",
   required_sections_error: "必备结构缺失",
   keyword_format_error: "关键词格式错误",
+  abstract_length_error: "字数问题",
+  abstract_consistency_error: "摘要配对问题",
+  formula_format_error: "公式格式错误",
   caption_format_error: "题注格式错误",
   caption_position_error: "题注位置错误",
   header_text_error: "页眉文字错误",
@@ -77,6 +80,7 @@ const VALUE_LABELS: Record<string, string> = {
 };
 
 const PAGE_SIZE = 20;
+const ERROR_EXCERPT_LENGTH = 40;
 
 function errorTypeLabel(type: string): string {
   return ERROR_TYPE_LABELS[type] ?? "格式问题";
@@ -89,6 +93,11 @@ function displayValue(value: string): string {
   const level = /^level=(\d+)$/.exec(value);
   if (level) return `第 ${level[1]} 级`;
   return value;
+}
+
+export function errorExcerpt(content: string): string {
+  if (content.length <= ERROR_EXCERPT_LENGTH) return content;
+  return `${content.slice(0, ERROR_EXCERPT_LENGTH)}……`;
 }
 
 export default function App() {
@@ -218,7 +227,7 @@ export default function App() {
           <p className="sub">{result.filename} 已完成格式检测。</p>
         </header>
         <section className="panel">
-          <h2>共 {result.total_error} 个格式问题</h2>
+          <h2>共 {result.total_error} 个问题</h2>
           {/* 按钮放在错误列表之前：问题多时列表会把按钮顶到很深的位置 */}
           <div className="result-actions">
             <button type="button" onClick={() => downloadReport("pdf")} disabled={reportStatus === "generating"}>
@@ -271,7 +280,7 @@ export default function App() {
                     </div>
                     <div>
                       <dt>文本</dt>
-                      <dd>{error.content || "（无文本）"}</dd>
+                      <dd>{errorExcerpt(error.content) || "（无文本）"}</dd>
                     </div>
                     <div>
                       <dt>当前格式</dt>

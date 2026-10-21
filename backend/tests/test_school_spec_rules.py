@@ -5,7 +5,7 @@ from backend.app.rules.detectors import detect_heading_numbering, detect_line_sp
 from backend.app.rules.loader import load_rules
 from backend.app.rules.service import check_document
 from backend.app.rules.contracts import CheckRule
-from backend.app.rules.spec_detectors import detect_keyword_format
+from backend.app.rules.spec_detectors import detect_caption_format, detect_keyword_format
 from backend.app.rules.targets import paragraph_targets
 
 
@@ -32,8 +32,9 @@ def test_default_rules_follow_cdu_page_and_heading_sizes() -> None:
     assert expected['foreign-title-font']['font'] == '黑体'
     assert expected['foreign-title-size']['size'] == '小三'
     assert expected['foreign-body-font']['font'] == 'Times New Roman'
-    assert expected['foreign-body-first-line-indent']['first_line_indent'] == '1字符'
-    assert expected['keywords-en-format']['lowercase'] is True
+    assert expected['foreign-original-first-line-indent']['first_line_indent'] == '1字符'
+    assert expected['foreign-translation-first-line-indent']['first_line_indent'] == '2字符'
+    assert 'lowercase' not in expected['keywords-en-format']
     assert expected['keywords-zh']['separator'] == 'semicolon'
     assert expected['keywords-en-format']['separator'] == 'semicolon'
     assert expected['page-number-segments'] == {'front_format': 'roman', 'body_format': 'decimal', 'start': 1}
@@ -66,7 +67,6 @@ def test_keyword_format_replaces_legacy_whole_paragraph_font_rules() -> None:
         'min': 3,
         'max': 8,
         'separator': 'semicolon',
-        'lowercase': True,
         'alignment': 'left',
         'first_line_indent': 0,
         'label': {'font': 'Times New Roman', 'size': '小四', 'bold': True},
@@ -249,3 +249,49 @@ def test_required_sections_and_keywords_and_captions_follow_spec() -> None:
     assert 'caption_format_error' in types
     # 页面级页眉检测需要可靠的 page/header_variant 数据；本单元夹具只覆盖段落规则。
     assert 'header_text_error' not in types
+
+
+def test_caption_mixed_script_fonts_are_checked_and_reported_separately() -> None:
+    text = '图1 AI性能测试'
+    document = Document(document_id='D1', source_filename='x.docx', paragraphs=[{
+        'paragraph_id': 'p-0001', 'text': text, 'heading': {'level': None},
+        'style': {'name': 'Normal'}, 'format': {'alignment': 'center'},
+        'runs': [{
+            'text': text,
+            'font': {'effective': '宋体', 'ascii': '宋体', 'east_asia': '宋体'},
+            'size_pt': 12,
+        }],
+    }])
+    rule = CheckRule(id='caption', type='caption_format', expected={
+        'figure': {'alignment': 'center', 'font': '宋体'},
+    })
+
+    errors = detect_caption_format(document, rule)
+    font_errors = [error for error in errors if error.current == '宋体']
+
+    assert len(font_errors) == 1
+    assert font_errors[0].expected == 'Times New Roman'
+    assert 'AI' in font_errors[0].content.strip()
+    assert font_errors[0].content.strip() == '1 AI'
+
+
+def test_caption_uses_songti_for_chinese_when_rule_font_is_latin() -> None:
+    text = '图1 AI性能测试'
+    document = Document(document_id='D1', source_filename='x.docx', paragraphs=[{
+        'paragraph_id': 'p-0001', 'text': text, 'heading': {'level': None},
+        'style': {'name': 'Normal'}, 'format': {'alignment': 'center'},
+        'runs': [{
+            'text': text,
+            'font': {'effective': '黑体', 'ascii': 'Times New Roman', 'east_asia': '黑体'},
+            'size_pt': 12,
+        }],
+    }])
+    rule = CheckRule(id='caption', type='caption_format', expected={
+        'figure': {'alignment': 'center', 'font': 'Times New Roman'},
+    })
+
+    font_errors = [error for error in detect_caption_format(document, rule) if error.expected in {'宋体', 'Times New Roman'}]
+
+    assert len(font_errors) == 1
+    assert font_errors[0].expected == '宋体'
+    assert font_errors[0].content == '性能测试'

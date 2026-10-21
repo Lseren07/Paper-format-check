@@ -42,6 +42,10 @@ def test_run_location_uses_nearest_heading_and_chinese_chapter() -> None:
     assert format_location(sample_document(), "p-0003:run-0001") == "第二章 系统设计 2.1 接口设计"
 
 
+def test_run_location_with_script_suffix_uses_chinese_position() -> None:
+    assert format_location(sample_document(), "p-0003:run-0001:latin") == "第二章 系统设计 2.1 接口设计"
+
+
 def test_heading_paragraph_uses_its_own_title() -> None:
     assert format_location(sample_document(), "p-0001") == "第二章 系统设计"
 
@@ -71,6 +75,18 @@ def test_page_margin_and_toc_locations_are_readable() -> None:
     assert format_location(document, "section-0:margin-left") == "左边距"
     assert format_location(document, "toc") == "目录"
     assert format_location(document, "table-0") == "表格1"
+    assert format_location(document, "toc:3") == "目录第3项"
+    assert format_location(document, "structure:ABSTRACT") == "论文结构（英文摘要）"
+    assert format_location(document, "abstract-pair") == "中英文摘要"
+    assert format_location(document, "citation-order") == "正文引用"
+    assert format_location(document, "header:page-2") == "第2页页眉"
+    assert format_location(document, "header:text") == "页眉文字"
+    assert format_location(document, "section-0:odd-even") == "奇偶页页眉设置"
+    assert format_location(document, "section-0:page-number") == "页码"
+
+
+def test_abstract_length_location_is_readable_chinese_label() -> None:
+    assert format_location(sample_document(), "abstract-length") == "摘要文本"
 
 
 def test_unknown_location_is_kept() -> None:
@@ -91,3 +107,18 @@ def test_relocate_errors_rewrites_display_location_but_keeps_error_id() -> None:
     ])
     assert errors[0].location == "第二章 系统设计 2.1 接口设计"
     assert errors[0].error_id == "body-font:p-0003:run-0001"
+
+
+def test_relocate_errors_rewrites_script_suffixed_location() -> None:
+    document = sample_document()
+    errors = relocate_errors(document, [
+        ErrorItem(
+            error_id="body-font:p-0003:run-0001:latin",
+            type="font_error",
+            location="p-0003:run-0001:latin",
+            content="AI",
+            current="宋体",
+            expected="Times New Roman",
+        )
+    ])
+    assert errors[0].location == "第二章 系统设计 2.1 接口设计"

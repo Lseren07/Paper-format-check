@@ -15,8 +15,8 @@ def _paragraphs(document: Document, rule: CheckRule):
     return target_paragraphs(document, rule)
 
 
-def _format_error(rule: CheckRule, paragraph: dict[str, Any], current: Any, expected: Any, *, location: str | None = None, display: Callable[[Any], str] = str) -> ErrorItem:
-    return make_error(rule, location=location or paragraph.get("paragraph_id", "paragraph"), content=paragraph.get("text", ""), current=display(current), expected=display(expected))
+def _format_error(rule: CheckRule, paragraph: dict[str, Any], current: Any, expected: Any, *, location: str | None = None, content: str | None = None, display: Callable[[Any], str] = str) -> ErrorItem:
+    return make_error(rule, location=location or paragraph.get("paragraph_id", "paragraph"), content=paragraph.get("text", "") if content is None else content, current=display(current), expected=display(expected))
 
 
 def _run_location(paragraph: dict[str, Any], index: int) -> str:
@@ -127,6 +127,14 @@ def _script_font(font: dict[str, Any], script: str, text: str) -> str | None:
     return None
 
 
+def _expected_font_for_script(expected: str | None, script: str) -> str | None:
+    if expected is None or script == "neutral":
+        return None
+    if script == "latin":
+        return "Times New Roman"
+    return expected if expected in EAST_ASIAN_FONTS or expected == "SimSun" else "宋体"
+
+
 def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
     expected = rule.expected.get("font")
     if expected is None:
@@ -138,7 +146,7 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
             if not _run_is_checkable(run):
                 continue
             font = run.get("font") or {}
-            mismatches: dict[str, str] = {}
+            mismatches: dict[str, tuple[str, str, str]] = {}
             segments = _script_segments(text)
             is_heading = (paragraph.get("heading") or {}).get("level") is not None
             for script, segment in segments:
@@ -147,19 +155,16 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
                     continue
                 if is_heading and script == "latin" and re.fullmatch(r"\d+(?:\.\d+)*\.?", segment.strip()):
                     continue
-                if script == "cjk" and expected not in EAST_ASIAN_FONTS:
-                    continue
-                expected_for_script = "Times New Roman" if script == "latin" else expected
+                expected_for_script = _expected_font_for_script(expected, script)
                 if current == expected_for_script:
                     continue
                 if script == "cjk" and expected in {"\u5b8b\u4f53", "SimSun"} and current in {"\u5b8b\u4f53", "SimSun"}:
                     continue
-                mismatches.setdefault(script, current)
-            for script, current in mismatches.items():
-                expected_for_script = "Times New Roman" if script == "latin" else expected
+                mismatches[script] = (current, segment.strip(), expected_for_script)
+            for script, (current, segment, expected_for_script) in mismatches.items():
                 has_mixed_script = any(item_script == "cjk" for item_script, _ in segments) and any(item_script == "latin" for item_script, _ in segments)
                 location = f"{_run_location(paragraph, index)}:{script}" if has_mixed_script else _run_location(paragraph, index)
-                errors.append(_format_error(rule, paragraph, current, expected_for_script, location=location))
+                errors.append(_format_error(rule, paragraph, current, expected_for_script, location=location, content=segment))
     return errors
 
 
@@ -211,7 +216,7 @@ def detect_paragraph_spacing(document: Document, rule: CheckRule) -> list[ErrorI
     return errors
 
 
-def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_key: str, pt_key: str) -> tuple[Any, Any, Callable[[Any], str]] | None:
+def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_key: str, pt_key: str, *, missing_is_zero: bool = False) -> tuple[Any, Any, Callable[[Any], str]] | None:
     """规范里的缩进以字符计，而段落上记的可能就是字符数，也可能只有磅值。
 
     两条分支的数值单位不同，所以把显示方式一并返回，避免把磅值标成字符。
@@ -226,8 +231,10 @@ def _compare_char_indent(paragraph: dict[str, Any], expected_value: Any, chars_k
             return None
         return actual_characters, expected_characters, _char_display
     current = paragraph.get("format", {}).get(pt_key)
+    if current is None:
+        return (0, expected_characters, _char_display) if missing_is_zero else None
     size_pt = next((run.get("size_pt") for run in paragraph.get("runs", []) if run.get("size_pt") is not None), None)
-    if current is None or size_pt is None:
+    if size_pt is None:
         return None
     expected_pt = expected_characters * float(size_pt)
     if abs(float(current) - expected_pt) <= 0.05:
@@ -244,7 +251,10 @@ def detect_paragraph_indent(document: Document, rule: CheckRule) -> list[ErrorIt
         ):
             if key not in rule.expected:
                 continue
-            mismatch = _compare_char_indent(paragraph, rule.expected[key], chars_key, pt_key)
+            mismatch = _compare_char_indent(
+                paragraph, rule.expected[key], chars_key, pt_key,
+                missing_is_zero=bool(rule.expected.get("missing_is_zero")) and key == "first_line_indent",
+            )
             if mismatch:
                 errors.append(_format_error(rule, paragraph, mismatch[0], mismatch[1], display=mismatch[2]))
     if "first_line_indent_pt" in rule.expected and "first_line_indent" not in rule.expected:

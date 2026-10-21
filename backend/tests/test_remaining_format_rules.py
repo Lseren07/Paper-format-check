@@ -80,6 +80,7 @@ def test_mixed_run_reports_wrong_latin_font_separately():
     assert errors[0].location.endswith(":latin")
     assert errors[0].current == "宋体"
     assert errors[0].expected == "Times New Roman"
+    assert errors[0].content in {"PostgreSQL", "MySQL"}
 
 
 def test_toc_consistency_compares_numbered_body_title_text_and_ignores_page_number():

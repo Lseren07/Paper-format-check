@@ -77,7 +77,7 @@ describe("paper detection flow", () => {
     await uploadAndDetect();
 
     expect(await screen.findByRole("heading", { name: "检测结果" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "共 1 个格式问题" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "共 1 个问题" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "字体错误" })).toBeInTheDocument();
     expect(screen.getByText("第二章 系统设计")).toBeInTheDocument();
     expect(screen.getByText("随着人工智能技术的发展")).toBeInTheDocument();
@@ -149,6 +149,24 @@ describe("paper detection flow", () => {
     expect(screen.queryByText("justify")).not.toBeInTheDocument();
   });
 
+  it("labels abstract word-count errors and shortens long excerpts", async () => {
+    const longText = "随着餐饮行业数字化转型不断深入，企业需要通过信息化系统提升库存管理、采购协同和智能推荐能力，并持续优化经营效率。";
+    stubDetection([{
+      error_id: "abstract-length:p-0001",
+      type: "abstract_length_error",
+      location: "摘要文本",
+      content: longText,
+      current: "360字",
+      expected: "200-300汉字",
+    }]);
+
+    await uploadAndDetect();
+
+    expect(await screen.findByRole("heading", { name: "字数问题" })).toBeInTheDocument();
+    expect(screen.getByText(`${longText.slice(0, 40)}……`)).toBeInTheDocument();
+    expect(screen.queryByText(longText)).not.toBeInTheDocument();
+  });
+
   it("downloads PDF and Markdown reports from their respective URLs", async () => {
     const fetchMock = stubDetection([]);
     const user = await uploadAndDetect();
@@ -218,7 +236,7 @@ describe("paper detection flow", () => {
 
     const user = await uploadAndDetect();
 
-    expect(await screen.findByRole("heading", { name: "共 26 个格式问题" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "共 26 个问题" })).toBeInTheDocument();
     // 26 条按每页 20 条切分，第一页满 20 张卡片
     expect(screen.getAllByRole("listitem")).toHaveLength(20);
     expect(screen.getByText("第 1 / 2 页")).toBeInTheDocument();

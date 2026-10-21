@@ -139,6 +139,26 @@ def test_mixed_sentence_reports_latin_font_when_ascii_is_songti() -> None:
     assert errors[0].expected == 'Times New Roman'
 
 
+def test_english_font_rule_still_checks_chinese_as_songti() -> None:
+    text = '英文AI与中文混排'
+    document = _document([_paragraph(
+        text=text,
+        runs=[{
+            'text': text,
+            'font': {'effective': '黑体', 'ascii': 'Times New Roman', 'east_asia': '黑体'},
+            'size_pt': 12,
+            'bold': False,
+        }],
+    )])
+    rule = CheckRule(id='foreign-body-font', type='font', target='body', expected={'font': 'Times New Roman'})
+
+    errors = detect_font(document, rule)
+
+    assert len(errors) == 1
+    assert errors[0].expected == '宋体'
+    assert errors[0].content == '与中文混排'
+
+
 def test_heading_font_rule_does_not_apply_body_latin_font_fallback_to_numbering() -> None:
     text = '1.1选题背景'
     document = _document([_paragraph(

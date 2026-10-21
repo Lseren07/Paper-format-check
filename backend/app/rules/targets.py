@@ -217,7 +217,17 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         elif structure == "abstract_en":
             assigned = {"abstract-en-title" if role == "title" else "abstract-en-body"}
         elif structure == "foreign":
-            assigned = {"foreign-title" if role == "title" else "foreign-body"}
+            if role == "title":
+                assigned = {"foreign-title"}
+            else:
+                assigned = {"foreign-body"}
+                foreign_kind = paragraph.get("foreign_kind")
+                # 外文原文/译文开头常有居中的题名和作者信息；缩进要求只适用于正文段落。
+                is_centered_front_matter = (paragraph.get("format") or {}).get("alignment") == "center"
+                if foreign_kind == "original" and not is_centered_front_matter:
+                    assigned.add("foreign-original-body")
+                elif foreign_kind == "translation" and not is_centered_front_matter:
+                    assigned.add("foreign-translation-body")
         elif structure == "figure_caption":
             assigned = {"figure_caption", "figure-caption", "caption"}
         elif structure == "table_caption":

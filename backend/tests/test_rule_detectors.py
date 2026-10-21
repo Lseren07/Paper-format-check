@@ -44,6 +44,17 @@ def test_paragraph_indent_converts_two_characters_using_run_size() -> None:
     assert errors[0].expected == "24磅"
 
 
+def test_paragraph_indent_reports_missing_required_indent_as_zero() -> None:
+    document = document_with_paragraph()
+    document.paragraphs[0]["format"] = {}
+
+    errors = detect_paragraph_indent(document, check_rule("indent", "paragraph_indent", {"first_line_indent": "2字符", "missing_is_zero": True}))
+
+    assert len(errors) == 1
+    assert errors[0].current == "0字符"
+    assert errors[0].expected == "2字符"
+
+
 def test_paragraph_indent_prefers_word_character_indent_over_mixed_run_sizes() -> None:
     document = document_with_paragraph()
     document.paragraphs[0]["runs"] = [

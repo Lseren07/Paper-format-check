@@ -352,13 +352,24 @@ def _stop_region(paragraph: dict[str, Any]) -> bool:
     )
 
 
-def _annotate_block(body: list[dict[str, Any]], start: int, structure: str, *, stop_heading1: bool = False) -> None:
+def _stop_foreign_region(paragraph: dict[str, Any]) -> bool:
+    text = _text(paragraph)
+    return bool(
+        TOC_TITLE.match(text) or REF_TITLE.match(text) or CHAPTER.match(text)
+        or ACK.match(text) or FOREIGN_TITLE.match(text)
+    )
+
+
+def _annotate_block(body: list[dict[str, Any]], start: int, structure: str, *, stop_heading1: bool = False, foreign_kind: str | None = None) -> None:
     body[start]["structure"] = structure
     body[start]["structure_role"] = "title"
+    if foreign_kind:
+        body[start]["foreign_kind"] = foreign_kind
     end = len(body)
     for index in range(start + 1, len(body)):
         heading_level = (body[index].get("heading") or {}).get("level")
-        if _stop_region(body[index]) or (stop_heading1 and heading_level == 1):
+        is_region_end = _stop_foreign_region(body[index]) if structure == "foreign" else _stop_region(body[index])
+        if is_region_end or (stop_heading1 and heading_level == 1):
             end = index
             break
     for paragraph in body[start + 1:end]:
@@ -366,6 +377,8 @@ def _annotate_block(body: list[dict[str, Any]], start: int, structure: str, *, s
             continue
         paragraph["structure"] = structure
         paragraph["structure_role"] = "body"
+        if foreign_kind:
+            paragraph["foreign_kind"] = foreign_kind
 
 
 def _annotate_english_abstract(body: list[dict[str, Any]], table_blocks: set[Any], by_block: dict[Any, dict[str, Any]]) -> None:
@@ -395,4 +408,6 @@ def _annotate_english_abstract(body: list[dict[str, Any]], table_blocks: set[Any
 def _annotate_foreign(body: list[dict[str, Any]]) -> None:
     starts = [index for index, paragraph in enumerate(body) if FOREIGN_TITLE.match(_text(paragraph))]
     for start in starts:
-        _annotate_block(body, start, "foreign")
+        title = _text(body[start])
+        kind = "translation" if re.match(r"^(?:外文资料译文|译\s*文)$", title) else "original"
+        _annotate_block(body, start, "foreign", foreign_kind=kind)
