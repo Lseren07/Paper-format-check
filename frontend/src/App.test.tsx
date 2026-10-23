@@ -167,7 +167,7 @@ describe("paper detection flow", () => {
     expect(screen.queryByText(longText)).not.toBeInTheDocument();
   });
 
-  it("downloads PDF and Markdown reports from their respective URLs", async () => {
+  it("downloads a PDF report and does not offer Markdown output", async () => {
     const fetchMock = stubDetection([]);
     const user = await uploadAndDetect();
     const blob = new Blob(["report"]);
@@ -187,9 +187,7 @@ describe("paper detection flow", () => {
         ok: true,
         json: async () => ({ data: {
           filename: "thesis_格式检测报告.pdf",
-          markdown_filename: "thesis_格式检测报告.md",
           download_url: "/api/v1/report/download/RT123",
-          markdown_download_url: "/api/v1/report/download/RT123/markdown",
         } }),
       })
       .mockResolvedValueOnce({ ok: true, blob: async () => blob });
@@ -197,22 +195,7 @@ describe("paper detection flow", () => {
     expect(fetchMock.mock.calls[4][0]).toBe("/api/v1/report/create");
     expect(fetchMock.mock.calls[5][0]).toBe("/api/v1/report/download/RT123");
     expect(anchor.download).toBe("thesis_格式检测报告.pdf");
-
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: {
-          filename: "thesis_格式检测报告.pdf",
-          markdown_filename: "thesis_格式检测报告.md",
-          download_url: "/api/v1/report/download/RT123",
-          markdown_download_url: "/api/v1/report/download/RT123/markdown",
-        } }),
-      })
-      .mockResolvedValueOnce({ ok: true, blob: async () => blob });
-    await user.click(screen.getByRole("button", { name: "下载 Markdown 报告" }));
-    expect(fetchMock.mock.calls[6][0]).toBe("/api/v1/report/create");
-    expect(fetchMock.mock.calls[7][0]).toBe("/api/v1/report/download/RT123/markdown");
-    expect(anchor.download).toBe("thesis_格式检测报告.md");
+    expect(screen.queryByRole("button", { name: "下载 Markdown 报告" })).not.toBeInTheDocument();
   });
 
   it("filters by type and paginates through long result lists", async () => {

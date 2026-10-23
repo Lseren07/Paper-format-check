@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { BrandMark, ScanningMark } from "./components/Brand";
+import { CaseList } from "./components/CaseList";
+import { CaseDetail } from "./components/CaseDetail";
 
 type ErrorItem = {
   error_id: string;
@@ -101,6 +103,8 @@ export function errorExcerpt(content: string): string {
 }
 
 export default function App() {
+  const [view, setView] = useState<"upload" | "cases" | "case-detail" | "result">("upload");
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("待检测");
   const [message, setMessage] = useState("");
@@ -150,6 +154,7 @@ export default function App() {
       }
       setAnalysis(analysisBody.data);
       setStatus("检测完成");
+      setView("result");
     } catch (error) {
       setStatus("检测失败");
       setMessage(error instanceof Error ? error.message : "无法连接后端服务");
@@ -167,9 +172,24 @@ export default function App() {
     setReportStatus("idle");
     setReportMessage("");
     setInputKey((value) => value + 1);
+    setView("upload");
   }
 
-  async function downloadReport(format: "pdf" | "markdown") {
+  function viewCaseList() {
+    setView("cases");
+  }
+
+  function viewCaseDetail(caseId: string) {
+    setSelectedCaseId(caseId);
+    setView("case-detail");
+  }
+
+  function backToCaseList() {
+    setSelectedCaseId(null);
+    setView("cases");
+  }
+
+  async function downloadReport() {
     if (!result || reportStatus === "generating") return;
     setReportStatus("generating");
     setReportMessage("");
@@ -183,9 +203,7 @@ export default function App() {
       if (!createResponse.ok) throw new Error(createBody.detail ?? "报告生成失败");
 
       const reportData = createBody.data ?? {};
-      const downloadUrl = format === "markdown"
-        ? reportData.markdown_download_url
-        : reportData.download_url;
+      const downloadUrl = reportData.download_url;
       if (!downloadUrl) throw new Error("报告下载地址缺失");
       const downloadResponse = await fetch(downloadUrl);
       if (!downloadResponse.ok) {
@@ -196,9 +214,7 @@ export default function App() {
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = format === "markdown"
-        ? reportData.markdown_filename ?? "格式检测报告.md"
-        : reportData.filename ?? "格式检测报告.pdf";
+      anchor.download = reportData.filename ?? "格式检测报告.pdf";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -218,7 +234,15 @@ export default function App() {
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  if (result) {
+  if (view === "cases") {
+    return <CaseList onSelectCase={viewCaseDetail} onBack={backToUpload} />;
+  }
+
+  if (view === "case-detail" && selectedCaseId) {
+    return <CaseDetail caseId={selectedCaseId} onBack={backToCaseList} />;
+  }
+
+  if (view === "result" && result) {
     return (
       <main className="shell">
         <header className="hero compact">
@@ -230,11 +254,8 @@ export default function App() {
           <h2>共 {result.total_error} 个问题</h2>
           {/* 按钮放在错误列表之前：问题多时列表会把按钮顶到很深的位置 */}
           <div className="result-actions">
-            <button type="button" onClick={() => downloadReport("pdf")} disabled={reportStatus === "generating"}>
+            <button type="button" onClick={downloadReport} disabled={reportStatus === "generating"}>
               {reportStatus === "generating" ? "正在生成报告" : "下载 PDF 报告"}
-            </button>
-            <button type="button" onClick={() => downloadReport("markdown")} disabled={reportStatus === "generating"}>
-              {reportStatus === "generating" ? "正在生成报告" : "下载 Markdown 报告"}
             </button>
             <button type="button" className="secondary-button" onClick={backToUpload}>返回上传</button>
           </div>
@@ -340,6 +361,9 @@ export default function App() {
         </label>
         <button type="button" disabled={!file || status === "检测中"} onClick={startDetection}>
           {status === "检测中" ? "正在鉴测" : "开始检测"}
+        </button>
+        <button type="button" className="secondary-button" onClick={viewCaseList}>
+          查看案例记录
         </button>
         <div className="status-row">
           {status === "检测中" && <ScanningMark size={64} />}
