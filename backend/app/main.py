@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from .api.analysis import router as analysis_router
+from .api.cases import router as cases_router
 from .api.detect import router as detect_router
 from .api.report import router as report_router
 from .api.rules import router as rules_router
@@ -21,6 +22,7 @@ app.include_router(report_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
 app.include_router(task_router, prefix="/api/v1")
 app.include_router(rules_router, prefix="/api/v1")
+app.include_router(cases_router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health")
