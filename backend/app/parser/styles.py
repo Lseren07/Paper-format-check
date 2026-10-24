@@ -182,10 +182,38 @@ def font_for_text(font: dict | None, text: str | None) -> str | None:
     return ascii_name or payload.get("effective") or east
 
 
+_FONT_NAME_SUFFIX = re.compile(r"[（(][^（）()]*[）)]\s*$")
+
+_FONT_NAME_ALIASES = {
+    "simsun": "宋体",
+    "nsimsun": "宋体",
+    "simhei": "黑体",
+    "simkai": "楷体",
+    "kaiti": "楷体",
+    "simfang": "仿宋",
+    "fangsong": "仿宋",
+    "microsoft yahei": "微软雅黑",
+    "msyh": "微软雅黑",
+}
+
+
+def normalize_font_name(name: str | None) -> str | None:
+    """把 WPS 主题字体名归一化为基础字体名，用于比较。
+
+    WPS 的主题字体在文档里写成「宋体（正文）」「黑体（标题）」，实际渲染仍是宋体/黑体，
+    直接和规范里的「宋体」「黑体」比较会把合规文档判成字体错误，所以比较前去掉括号后缀，
+    并把 SimSun 这类西文名映射回中文名。展示时仍用原始字体名，不改变用户看到的信息。
+    """
+    if not name:
+        return name
+    base = _FONT_NAME_SUFFIX.sub("", str(name).strip()).strip()
+    return _FONT_NAME_ALIASES.get(base.lower(), base)
+
+
 def font_matches(current: str | None, expected: str | None, text: str | None) -> bool:
     if current is None or expected is None:
         return True
-    if current == expected:
+    if normalize_font_name(current) == normalize_font_name(expected):
         return True
     if CJK.search(text or ""):
         return False

@@ -4,7 +4,7 @@ from typing import Any, Callable
 from ..models.contracts import Document, ErrorItem
 from .contracts import CheckRule
 from .errors import make_error
-from ..parser.styles import CJK, EAST_ASIAN_FONTS, font_for_text, font_matches
+from ..parser.styles import CJK, EAST_ASIAN_FONTS, font_for_text, font_matches, normalize_font_name
 from .targets import size_to_pt, target_paragraphs, paragraph_text
 
 
@@ -86,6 +86,21 @@ def _char_display(value: Any) -> str:
     return str(value) if number is None else f"{_trim(number)}字符"
 
 
+def _pt_labeled_display(label: str) -> Callable[[Any], str]:
+    """带上字段名的磅值展示：只报「6磅」用户不知道改段前还是段后。"""
+    def display(value: Any) -> str:
+        number = _number(value)
+        return str(value) if number is None else f"{label} {_trim(number)} 磅"
+    return display
+
+
+def _char_labeled_display(label: str) -> Callable[[Any], str]:
+    def display(value: Any) -> str:
+        number = _number(value)
+        return str(value) if number is None else f"{label} {_trim(number)} 字符"
+    return display
+
+
 COVER_LABEL_RUN = re.compile(r"^题\s*目$")
 
 
@@ -156,7 +171,7 @@ def detect_font(document: Document, rule: CheckRule) -> list[ErrorItem]:
                 if is_heading and script == "latin" and re.fullmatch(r"\d+(?:\.\d+)*\.?", segment.strip()):
                     continue
                 expected_for_script = _expected_font_for_script(expected, script)
-                if current == expected_for_script:
+                if normalize_font_name(current) == normalize_font_name(expected_for_script):
                     continue
                 if script == "cjk" and expected in {"\u5b8b\u4f53", "SimSun"} and current in {"\u5b8b\u4f53", "SimSun"}:
                     continue
@@ -206,13 +221,13 @@ def detect_paragraph_spacing(document: Document, rule: CheckRule) -> list[ErrorI
     errors = []
     for paragraph in _paragraphs(document, rule):
         fmt = paragraph.get("format") or {}
-        for key in ("space_before_pt", "space_after_pt"):
+        for key, label in (("space_before_pt", "段前"), ("space_after_pt", "段后")):
             expected = rule.expected.get(key)
             current = fmt.get(key)
             if expected is None or current is None:
                 continue
             if not _values_equal(current, expected):
-                errors.append(_format_error(rule, paragraph, current, expected, display=_pt_display))
+                errors.append(_format_error(rule, paragraph, current, expected, display=_pt_labeled_display(label)))
     return errors
 
 
@@ -256,9 +271,11 @@ def detect_paragraph_indent(document: Document, rule: CheckRule) -> list[ErrorIt
                 missing_is_zero=bool(rule.expected.get("missing_is_zero")) and key == "first_line_indent",
             )
             if mismatch:
-                errors.append(_format_error(rule, paragraph, mismatch[0], mismatch[1], display=mismatch[2]))
+                label = "首行缩进" if key == "first_line_indent" else "悬挂缩进"
+                display = _pt_labeled_display(label) if mismatch[2] is _pt_display else _char_labeled_display(label)
+                errors.append(_format_error(rule, paragraph, mismatch[0], mismatch[1], display=display))
     if "first_line_indent_pt" in rule.expected and "first_line_indent" not in rule.expected:
-        errors.extend(_paragraph_value(document, rule, "first_line_indent_pt", display=_pt_display))
+        errors.extend(_paragraph_value(document, rule, "first_line_indent_pt", display=_pt_labeled_display("首行缩进")))
     return errors
 
 
@@ -291,12 +308,36 @@ def detect_bold(document: Document, rule: CheckRule) -> list[ErrorItem]:
     return errors
 
 
+_CHAPTER_HEADING_TEXT = re.compile(r"^第\s*(\d+)\s*章(?:\s+\S.*)?$")
+_CHAPTER_HEADING_LABEL = re.compile(r"^第\s*(\d+)\s*章$")
+_BODY_SENTENCE_HINTS = re.compile(r"[。，；：！？,.;:!?]")
+_CHAPTER_TITLE_MAX_CHARS = 40
+
+
+def _chapter_number_parts(paragraph: dict[str, Any], text: str, label: str) -> tuple[int, ...] | None:
+    """识别章级编号，避免把正文里提到「第N章」的句子当成标题。
+
+    带标题级别的段落直接信任其编号；没有标题级别时（学生常把章标题写成正文样式），
+    只有文本形态像标题才认：整段是「第N章」或「第N章 题名」，且不是带标点的长句。
+    否则 1.3 节里「第1章为绪论，……」这类正文会被计入章级编号，连带后面的真标题一起误报。
+    """
+    if paragraph.get("heading", {}).get("level") is not None:
+        chapter = re.match(r"第\s*(\d+)\s*章", text) or re.match(r"第\s*(\d+)\s*章", label)
+        return (int(chapter.group(1)),) if chapter else None
+    chapter = _CHAPTER_HEADING_TEXT.match(text) or _CHAPTER_HEADING_LABEL.match(label)
+    if chapter is None:
+        return None
+    if len(text) > _CHAPTER_TITLE_MAX_CHARS or _BODY_SENTENCE_HINTS.search(text):
+        return None
+    return (int(chapter.group(1)),)
+
+
 def _heading_number_parts(paragraph: dict[str, Any]) -> tuple[int, ...] | None:
     text = paragraph_text(paragraph)
     label = str((paragraph.get("numbering") or {}).get("label") or "")
-    chapter = re.match(r"第\s*(\d+)\s*章", text) or re.match(r"第\s*(\d+)\s*章", label)
+    chapter = _chapter_number_parts(paragraph, text, label)
     if chapter:
-        return (int(chapter.group(1)),)
+        return chapter
     match = re.match(r"^\s*(\d+(?:\.\d+)*)(?:\s*[.)、．:]|\s+|(?=[^\d.]|$))", text)
     if match is None:
         match = re.fullmatch(r"(\d+(?:\.\d+)*)\.?", label)

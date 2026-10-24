@@ -1,6 +1,6 @@
 from backend.app.models.contracts import Document
 from backend.app.rules.contracts import CheckRule, RuleTarget
-from backend.app.rules.detectors import detect_alignment, detect_bold, detect_font, detect_line_spacing, detect_paragraph_indent, detect_size
+from backend.app.rules.detectors import detect_alignment, detect_bold, detect_font, detect_line_spacing, detect_paragraph_indent, detect_paragraph_spacing, detect_size
 
 
 def check_rule(rule_id: str, rule_type: str, expected: dict) -> CheckRule:
@@ -40,8 +40,8 @@ def test_paragraph_indent_converts_two_characters_using_run_size() -> None:
     document.paragraphs[0]["format"]["first_line_indent_pt"] = 12
     errors = detect_paragraph_indent(document, check_rule("indent", "paragraph_indent", {"first_line_indent": "2字符"}))
     # 走的是磅值分支，数值必须带磅，否则会被当成字符数读错
-    assert errors[0].current == "12磅"
-    assert errors[0].expected == "24磅"
+    assert errors[0].current == "首行缩进 12 磅"
+    assert errors[0].expected == "首行缩进 24 磅"
 
 
 def test_paragraph_indent_reports_missing_required_indent_as_zero() -> None:
@@ -51,8 +51,19 @@ def test_paragraph_indent_reports_missing_required_indent_as_zero() -> None:
     errors = detect_paragraph_indent(document, check_rule("indent", "paragraph_indent", {"first_line_indent": "2字符", "missing_is_zero": True}))
 
     assert len(errors) == 1
-    assert errors[0].current == "0字符"
-    assert errors[0].expected == "2字符"
+    assert errors[0].current == "首行缩进 0 字符"
+    assert errors[0].expected == "首行缩进 2 字符"
+
+
+def test_paragraph_spacing_reports_field_name_in_message() -> None:
+    document = document_with_paragraph()
+    document.paragraphs[0]["format"]["space_before_pt"] = 6
+
+    errors = detect_paragraph_spacing(document, check_rule("spacing", "paragraph_spacing", {"space_before_pt": 3}))
+
+    assert len(errors) == 1
+    assert errors[0].current == "段前 6 磅"
+    assert errors[0].expected == "段前 3 磅"
 
 
 def test_paragraph_indent_prefers_word_character_indent_over_mixed_run_sizes() -> None:

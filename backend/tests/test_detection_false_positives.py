@@ -384,6 +384,148 @@ def test_real_preface_titles_are_kept_before_chapters() -> None:
     assert "body" in assigned["p-0005"]
 
 
+def test_heading_numbering_ignores_chapter_mentions_in_body_text() -> None:
+    from backend.app.rules.detectors import detect_heading_numbering
+
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[
+            _paragraph("p-0001", "第1章 绪论", style="毕设-正文-大标题", structure="body", heading=1),
+            _paragraph("p-0002", "1.1 选题背景", structure="body", heading=2),
+            _paragraph("p-0003", "1.2 国内外研究现状", structure="body", heading=2),
+            _paragraph("p-0004", "1.3 论文章节安排", structure="body", heading=2),
+            _paragraph("p-0005", "第1章为绪论，对线上自习室小程序的研究背景、意义和研究现状进行全面阐述。", structure="body"),
+            _paragraph("p-0006", "第2章 系统相关技术背景，介绍小程序开发所用到的关键技术。", structure="body"),
+            _paragraph("p-0007", "第2章 系统相关技术背景", style="毕设-正文-大标题", structure="body", heading=1),
+            _paragraph("p-0008", "第3章 系统需求分析", style="毕设-正文-大标题", structure="body", heading=1),
+        ],
+    )
+    rule = CheckRule(id="heading-numbering", type="heading_numbering", expected={"require_title": True})
+    assert detect_heading_numbering(document, rule) == []
+
+
+def test_heading_numbering_still_detects_gap_for_unstyled_chapter_titles() -> None:
+    from backend.app.rules.detectors import detect_heading_numbering
+
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[
+            _paragraph("p-0001", "第1章 绪论", structure="body"),
+            _paragraph("p-0002", "第3章 系统需求分析", structure="body"),
+        ],
+    )
+    rule = CheckRule(id="heading-numbering", type="heading_numbering", expected={"require_title": True})
+    errors = detect_heading_numbering(document, rule)
+    assert [error.current for error in errors] == ["3"]
+    assert [error.expected for error in errors] == ["2"]
+
+
+def test_caption_note_alignment_ignores_empty_paragraph_after_figure_caption() -> None:
+    from backend.app.rules.detectors import detect_alignment
+
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[
+            _paragraph("p-0001", "图3-4 查看自习室功能结构图", style="新图样式", structure="figure_caption", alignment="center"),
+            _paragraph("p-0002", "", style="毕设-图注", structure="body", alignment="justify"),
+        ],
+    )
+    rule = CheckRule(id="caption-note-alignment", type="alignment", target="caption-note", expected={"alignment": "center"})
+    assert detect_alignment(document, rule) == []
+
+
+def test_references_spacing_ignores_empty_paragraph_at_section_end() -> None:
+    from backend.app.rules.detectors import detect_paragraph_spacing
+
+    empty = _paragraph("p-0003", "", style="毕设-正文-正文部分", structure="references", role="body", alignment="justify")
+    empty["format"]["space_before_pt"] = 6.0
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[
+            _paragraph("p-0001", "参考文献", style="毕设-正文-大标题", structure="references", role="title", alignment="center"),
+            _paragraph("p-0002", "张三. 测试文献[J]. 2020.", style="参考文献", structure="references", role="body", alignment="justify"),
+            empty,
+        ],
+    )
+    rule = CheckRule(id="references-spacing", type="paragraph_spacing", target="references-entry",
+                     expected={"space_before_pt": 3, "space_after_pt": 0})
+    assert detect_paragraph_spacing(document, rule) == []
+
+
+def test_references_spacing_still_checks_real_entries() -> None:
+    from backend.app.rules.detectors import detect_paragraph_spacing
+
+    entry = _paragraph("p-0002", "张三. 测试文献[J]. 2020.", style="参考文献", structure="references", role="body", alignment="justify")
+    entry["format"]["space_before_pt"] = 6.0
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[
+            _paragraph("p-0001", "参考文献", style="毕设-正文-大标题", structure="references", role="title", alignment="center"),
+            entry,
+        ],
+    )
+    rule = CheckRule(id="references-spacing", type="paragraph_spacing", target="references-entry",
+                     expected={"space_before_pt": 3, "space_after_pt": 0})
+    errors = detect_paragraph_spacing(document, rule)
+    assert [error.current for error in errors] == ["段前 6 磅"]
+    assert [error.expected for error in errors] == ["段前 3 磅"]
+
+
+def test_font_detection_accepts_wps_theme_font_name_with_suffix() -> None:
+    from backend.app.rules.detectors import detect_font
+
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[{
+            "paragraph_id": "p-0001",
+            "text": "这是正文段落。",
+            "style": {"name": "Normal"},
+            "heading": {"level": None},
+            "structure": "body",
+            "location": {"part": "document"},
+            "format": {},
+            "runs": [{
+                "text": "这是正文段落。",
+                "font": {"effective": "宋体（正文）", "ascii": "Times New Roman", "east_asia": "宋体（正文）"},
+                "size_pt": 12,
+            }],
+        }],
+    )
+    rule = CheckRule(id="body-font", type="font", target="body", expected={"font": "宋体"})
+    assert detect_font(document, rule) == []
+
+
+def test_font_detection_accepts_wps_heading_theme_font_name_with_suffix() -> None:
+    from backend.app.rules.detectors import detect_font
+
+    document = Document(
+        document_id="D1",
+        source_filename="x.docx",
+        paragraphs=[{
+            "paragraph_id": "p-0001",
+            "text": "第1章 绪论",
+            "style": {"name": "Heading 1"},
+            "heading": {"level": 1},
+            "structure": "body",
+            "location": {"part": "document"},
+            "format": {},
+            "runs": [{
+                "text": "第1章 绪论",
+                "font": {"effective": "黑体（标题）", "ascii": "Times New Roman", "east_asia": "黑体（标题）"},
+                "size_pt": 15,
+            }],
+        }],
+    )
+    rule = CheckRule(id="title1-font", type="font", target="title1", expected={"font": "黑体"})
+    assert detect_font(document, rule) == []
+
+
 def test_cover_title_ignores_topic_label_run() -> None:
     document = Document(
         document_id="D1",

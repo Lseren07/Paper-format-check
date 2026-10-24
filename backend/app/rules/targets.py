@@ -85,43 +85,21 @@ def _heading_level(paragraph: dict[str, Any]) -> int | None:
 def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
     style = _style_name(paragraph)
     text = paragraph_text(paragraph)
-    if re.match(r"^??", text) or (text.startswith("?") and any(token in style for token in ("??", "??", "??"))):
+    if re.match(r"^\u7eed\u8868", text) or (text.startswith("\u8868") and any(token in style for token in ("\u56fe\u6ce8", "\u8868\u6ce8", "\u8868\u9898"))):
         return {"table_caption", "table-caption", "caption"}
-    if text and any(token in style for token in ("??", "??")):
+    if text and any(token in style for token in ("\u56fe\u6ce8", "\u56fe\u9898")):
         return {"figure_caption", "figure-caption", "caption"}
     return set()
 
 
 def _caption_note_target(paragraph: dict[str, Any], previous_paragraph: dict[str, Any] | None) -> bool:
     text = paragraph_text(paragraph)
+    if not text:
+        return False
     style = _style_name(paragraph).lower()
     if not re.match(r"^(?:注|附注)\s*[：:]", text) and not any(token in style for token in ("图注", "表注", "caption note")):
         return False
     return previous_paragraph is not None and bool(CAPTION_RE.match(paragraph_text(previous_paragraph)))
-
-
-def _skip_as_body(paragraph: dict[str, Any]) -> bool:
-    style = _style_name(paragraph)
-    text = paragraph_text(paragraph)
-    if "??" in style:
-        return True
-    if any(token in style for token in ("??", "??", "??", "??", "??")):
-        return True
-    if paragraph.get("drawings") and not text:
-        return True
-    if not text:
-        return True
-    return False
-
-
-def _note_caption_targets(paragraph: dict[str, Any]) -> set[str]:
-    style = _style_name(paragraph)
-    text = paragraph_text(paragraph)
-    if re.match(r"^\u7eed\u8868", text) or (text.startswith("\u8868") and any(token in style for token in ("\u56fe\u6ce8", "\u8868\u6ce8", "\u8868\u9898"))):
-        return {"table_caption", "table-caption", "caption"}
-    if text and any(token in style for token in ("\u56fe\u6ce8", "\u56fe\u9898")):
-        return {"figure_caption", "figure-caption", "caption"}
-    return set()
 
 
 def _skip_as_body(paragraph: dict[str, Any]) -> bool:
@@ -187,7 +165,13 @@ def paragraph_targets(document: Document) -> dict[str, set[str]]:
         elif structure == "keywords_en":
             assigned = {"keywords-en"}
         elif structure == "references":
-            assigned = {"references", "references-entry"} if role != "title" else {"references-title"}
+            if role == "title":
+                assigned = {"references-title"}
+            elif not text and not paragraph.get("drawings"):
+                # 参考文献末尾的空行不该当成条目，否则会按“段前 3 磅”报错。
+                assigned = {"references"}
+            else:
+                assigned = {"references", "references-entry"}
         elif structure == "toc":
             assigned = set() if _heading_level(paragraph) == 2 else {"toc-body"}
         elif structure == "body":
