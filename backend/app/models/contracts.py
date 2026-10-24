@@ -29,3 +29,18 @@ class ErrorItem(BaseModel):
     expected: str
     rule_id: str | None = None
     basis: str | None = None
+
+
+class ProjectCase(BaseModel):
+    """项目案例模型"""
+    model_config = ConfigDict(extra="forbid")
+
+    case_id: str
+    title: str
+    description: str
+    school: str
+    file_count: int
+    error_rate: float
+    created_at: str
+    thumbnail_url: str | None = None
+    tags: list[str] = Field(default_factory=list)
