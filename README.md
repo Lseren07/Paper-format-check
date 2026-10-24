@@ -73,6 +73,8 @@ backend\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --rel
 
 健康检查：`http://127.0.0.1:8000/api/v1/health`
 
+> 排查提示：本机若配置了系统代理，`curl http://127.0.0.1:8000/...` 会走代理，后端未启动时返回 **502 而不是连接失败**，容易误判服务仍在运行。判断存活请加 `--noproxy '*'`，或直接确认 8000 端口是否有监听。另外，启动命令若去掉 `--reload`，修改后端代码后必须重启进程才会生效。
+
 ## 初始化前端
 
 ```powershell
