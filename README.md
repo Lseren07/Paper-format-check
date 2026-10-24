@@ -87,7 +87,7 @@ npm run dev
 
 - 当前文件处理范围仅为有效 `.docx` 文档；暂不支持旧版 `.doc`。
 
-- `paper-checker-prototype` 是现有静态交互原型，未删除或覆盖。
+- `paper-checker-prototype` 静态交互原型已移除，交互入口以 `frontend/` 为准。
 - 本次只配置运行环境和健康检查入口，不创建数据库表，不写入密钥，不实现未确定的业务接口。
 - `uploads` 和 `reports` 仅用于本地运行时文件，已加入 Git 忽略规则。
 ## 当前验证状态（2026-09-16）
