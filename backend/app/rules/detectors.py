@@ -212,7 +212,15 @@ def detect_paragraph_spacing(document: Document, rule: CheckRule) -> list[ErrorI
             if expected is None or current is None:
                 continue
             if not _values_equal(current, expected):
-                errors.append(_format_error(rule, paragraph, current, expected, display=_pt_display))
+                field = "space-before" if key == "space_before_pt" else "space-after"
+                errors.append(_format_error(
+                    rule,
+                    paragraph,
+                    current,
+                    expected,
+                    location=f"{paragraph.get('paragraph_id', 'paragraph')}:{field}",
+                    display=_pt_display,
+                ))
     return errors
 
 

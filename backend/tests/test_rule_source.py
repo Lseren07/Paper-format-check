@@ -123,7 +123,7 @@ def test_report_shortens_long_error_text() -> None:
     long_text = "随着餐饮行业数字化转型不断深入，企业需要通过信息化系统提升库存管理、采购协同和智能推荐能力，并持续优化经营效率。"
     text = _story_text(TaskRecord(task_id="Texcerpt", filename="论文.docx", status="completed", errors=[error(content=long_text)]))
 
-    assert long_text[:40] + "……" in text
+    assert long_text[: report_service.ERROR_EXCERPT_LENGTH] + "……" in text
     assert long_text not in text
     assert "共发现 1 个问题。" in text
     assert "共发现 1 个格式问题。" not in text
@@ -203,3 +203,51 @@ def test_report_clause_covers_errors_from_default_rules() -> None:
         pytest.skip("空文档在当前规则下没有可定位的错误")
     mapping = clauses_by_rule_id(rules)
     assert all(error.rule_id in mapping for error in errors)
+
+
+def test_report_translates_internal_values() -> None:
+    assert report_service._display_value("justify") == "两端对齐"
+    assert report_service._display_value("out-of-order") == "顺序不符"
+    assert report_service._display_value("after ABSTRACT") == "位于“英文摘要”之后"
+    assert report_service._display_value("0-250词") == "不超过 250 词"
+    assert report_service._display_value("") == "—"
+
+
+def test_report_groups_repeated_errors_under_one_heading() -> None:
+    task = TaskRecord(
+        task_id="Tgroup",
+        filename="论文.docx",
+        status="completed",
+        errors=[
+            error(error_id="e1", type="alignment_error", location="第1段", current="justify", expected="left", rule_id="body-alignment"),
+            error(error_id="e2", type="alignment_error", location="第2段", current="left", expected="justify", rule_id="body-alignment"),
+        ],
+    )
+    text = _story_text(task)
+
+    assert "两端对齐" in text
+    assert "justify" not in text
+    assert text.count("（2 项）") == 1
+    assert "涉及 1 类格式项" in text
+
+
+def test_report_uses_readable_section_names() -> None:
+    task = TaskRecord(
+        task_id="Tsection",
+        filename="论文.docx",
+        status="completed",
+        errors=[error(
+            error_id="e1",
+            type="required_sections_error",
+            location="论文结构",
+            content="ABSTRACT",
+            current="missing",
+            expected="ABSTRACT",
+            rule_id="required-sections",
+        )],
+    )
+    text = _story_text(task)
+
+    assert "论文结构（英文摘要）" in text
+    assert "英文摘要" in text
+    assert "ABSTRACT" not in text

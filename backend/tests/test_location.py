@@ -89,6 +89,16 @@ def test_abstract_length_location_is_readable_chinese_label() -> None:
     assert format_location(sample_document(), "abstract-length") == "摘要文本"
 
 
+def test_toc_decimal_location_is_readable() -> None:
+    assert format_location(sample_document(), "toc:1.1") == "目录第1.1项"
+
+
+def test_paragraph_spacing_field_suffix_distinguishes_before_and_after() -> None:
+    document = sample_document()
+    assert format_location(document, "p-0003:space-before") == "第二章 系统设计 2.1 接口设计（段前）"
+    assert format_location(document, "p-0003:space-after") == "第二章 系统设计 2.1 接口设计（段后）"
+
+
 def test_unknown_location_is_kept() -> None:
     assert format_location(sample_document(), "unknown-loc") == "unknown-loc"
 

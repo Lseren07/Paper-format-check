@@ -9,7 +9,7 @@ from ..models.contracts import Document, ErrorItem
 _PARAGRAPH_RE = re.compile(r"^(p-\d+)(?::.*)?$")
 _MARGIN_RE = re.compile(r"^section-\d+:margin-(top|right|bottom|left)$")
 _TABLE_RE = re.compile(r"^table-(\d+)$")
-_TOC_ITEM_RE = re.compile(r"^toc:(\d+)$")
+_TOC_ITEM_RE = re.compile(r"^toc:(.+)$")
 _HEADER_PAGE_RE = re.compile(r"^header:page-(\d+)$")
 _SECTION_ODD_EVEN_RE = re.compile(r"^section-(\d+):odd-even$")
 _SECTION_FIELD_RE = re.compile(r"^section-\d+:(width_cm|height_cm|header|footer)$")
@@ -27,6 +27,12 @@ _SECTION_FIELD_LABELS = {
     "height_cm": "纸张高度",
     "header": "页眉距边界",
     "footer": "页脚距边界",
+}
+
+# 段前/段后是两条独立错误，位置若只写段落名会被看成重复项。
+_PARAGRAPH_DETAIL_LABELS = {
+    "space-before": "段前",
+    "space-after": "段后",
 }
 
 _STRUCTURE_LABELS = {
@@ -84,7 +90,9 @@ def format_location(document: Document, location: str) -> str:
     match = _PARAGRAPH_RE.fullmatch(location)
     if match is None:
         return location
-    return _format_paragraph_location(document, match.group(1)) or location
+    readable = _format_paragraph_location(document, match.group(1)) or location
+    detail = _PARAGRAPH_DETAIL_LABELS.get(location.rsplit(":", 1)[-1])
+    return f"{readable}（{detail}）" if detail else readable
 
 
 def relocate_errors(document: Document, errors: list[ErrorItem]) -> list[ErrorItem]:
