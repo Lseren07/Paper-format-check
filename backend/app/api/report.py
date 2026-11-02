@@ -8,10 +8,14 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from ..rules.registry import RuleSetNotFoundError, resolve_rule_set
+from ..services.cleanup import run_lazy_cleanup
 from ..services.report import (
+    DEFAULT_REPORT_FILENAME,
     build_report,
+    read_report_meta,
     report_id_for,
     report_path,
+    write_report_meta,
 )
 from ..services.rule_summary import summarize_rule_source
 from ..services.task_store import TaskRecord, store
@@ -33,6 +37,7 @@ def _require_task(task_id: str) -> TaskRecord:
 
 @router.post("/create")
 def create_report(payload: ReportCreateRequest) -> dict:
+    run_lazy_cleanup()
     task = _require_task(payload.task_id)
     if task.status == "failed":
         raise HTTPException(status_code=400, detail="检测失败，无法生成报告")
@@ -48,11 +53,13 @@ def create_report(payload: ReportCreateRequest) -> dict:
     upload_path = upload.UPLOAD_DIR / f"{task.task_id}.docx"
     upload_path.unlink(missing_ok=True)
     report_id = report_id_for(task.task_id)
+    filename = f"{Path(task.filename).stem}_格式检测报告.pdf"
+    write_report_meta(report_id, task_id=task.task_id, filename=filename, source_filename=task.filename)
     summary = summarize_rule_source(rules)
     return {"code": 200, "message": "报告生成成功", "data": {
         "report_id": report_id,
         "task_id": task.task_id,
-        "filename": f"{Path(task.filename).stem}_格式检测报告.pdf",
+        "filename": filename,
         "total_error": len(task.errors),
         "download_url": f"/api/v1/report/download/{report_id}",
         "rule_set_id": resolved.info.id,
@@ -73,11 +80,16 @@ def create_report(payload: ReportCreateRequest) -> dict:
 
 @router.get("/download/{report_id}")
 def download_report(report_id: str) -> FileResponse:
+    """只以 PDF 是否存在为准，不再依赖内存里的任务记录。
+
+    这样引擎进程重启（内存任务清空）后，已经生成的报告仍然能下载。
+    """
     if not re.fullmatch(r"RT[A-Za-z0-9_-]+", report_id):
         raise HTTPException(status_code=404, detail="检测报告不存在")
-    task_id = report_id.removeprefix("R")
+    run_lazy_cleanup()
     path = report_path(report_id)
-    task = _require_task(task_id)
     if not path.is_file():
         raise HTTPException(status_code=404, detail="检测报告不存在")
-    return FileResponse(path, media_type="application/pdf", filename=f"{Path(task.filename).stem}_格式检测报告.pdf")
+    meta = read_report_meta(report_id) or {}
+    filename = meta.get("filename") or DEFAULT_REPORT_FILENAME
+    return FileResponse(path, media_type="application/pdf", filename=filename)

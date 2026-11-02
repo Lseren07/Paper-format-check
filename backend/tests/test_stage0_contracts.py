@@ -16,6 +16,8 @@ def test_health_endpoint_returns_api_version() -> None:
     assert response.json() == {
         "status": "ok",
         "service": "paper-checker-backend",
+        "version": "0.1.0",
+        "contract_version": "1.0.0",
     }
 
 

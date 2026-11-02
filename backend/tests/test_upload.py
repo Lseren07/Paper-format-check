@@ -143,3 +143,70 @@ def test_upload_rejects_too_large(tmp_path, monkeypatch) -> None:
     assert response.status_code == 413
     # 超限后残留文件应被清理干净
     assert list(tmp_path.iterdir()) == []
+
+
+def test_upload_rejects_empty_file(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("empty.docx", b"", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+
+    assert response.status_code == 400
+    assert "文件为空" in response.json()["detail"]
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_upload_rejects_legacy_doc_with_readable_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("论文.doc", b"\xd0\xcf\x11\xe0", "application/msword")},
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert "仅支持 .docx" in detail
+    assert ".doc" in detail
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_upload_rejects_pdf(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("论文.pdf", b"%PDF-1.7", "application/pdf")},
+    )
+
+    assert response.status_code == 400
+    assert "仅支持 .docx" in response.json()["detail"]
+
+
+def test_upload_rejects_missing_extension(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("noextension", b"x", "application/octet-stream")},
+    )
+
+    assert response.status_code == 400
+    assert "仅支持 .docx" in response.json()["detail"]
+
+
+def test_upload_rejects_fifty_one_mib(tmp_path, monkeypatch) -> None:
+    """契约要求 51 MiB 返回 413；按默认 50 MiB 上限真跑一遍边界。"""
+    monkeypatch.setattr(upload, "UPLOAD_DIR", tmp_path)
+    oversized = b"x" * (51 * 1024 * 1024)
+
+    response = TestClient(app).post(
+        "/api/v1/paper/upload",
+        files={"file": ("huge.docx", oversized, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+
+    assert response.status_code == 413
+    assert "50MB" in response.json()["detail"]
+    assert list(tmp_path.iterdir()) == []

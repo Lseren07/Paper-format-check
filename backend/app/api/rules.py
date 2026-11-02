@@ -9,8 +9,23 @@ from ..rules.registry import (
     resolve_rule_set,
     rules_dir,
 )
+from ..services.rule_summary import summarize_rule_source
 
 router = APIRouter(prefix="/rule", tags=["rule"])
+
+
+def rule_source_summary(info, rules) -> dict | None:
+    """规则集来源规范的摘要；没有 source 时返回 None，不伪造依据。"""
+    if not info.source_available:
+        return None
+    summary = summarize_rule_source(rules)
+    return {
+        "title": summary["title"],
+        "document": summary["document"],
+        "organization": summary["organization"],
+        "scope": summary["scope"],
+        "clause_count": len(summary["clauses"]),
+    }
 
 
 @router.get("/list")
@@ -39,6 +54,7 @@ def get_rule_set(rule_set_id: str) -> dict:
         "message": "success",
         "data": {
             "rule_set": resolved.info.model_dump(),
+            "source": rule_source_summary(resolved.info, resolved.rules),
             "checks": [check.model_dump() for check in resolved.rules.checks],
         },
     }

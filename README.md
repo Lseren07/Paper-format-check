@@ -73,6 +73,90 @@ backend\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --rel
 
 健康检查：`http://127.0.0.1:8000/api/v1/health`
 
+## 引擎服务化：密钥、端口与目录
+
+引擎现在只允许被持有共享密钥的 Flask 调用，**未设置 `FORMAT_ENGINE_KEY` 时拒绝启动**。
+
+### 端口
+
+引擎固定监听 `127.0.0.1:8010`（避开 Flask 5000 与 ONLYOFFICE 8080），端口由启动命令参数决定，不走环境变量。
+
+### 密钥
+
+`.env` 中的 `FORMAT_ENGINE_KEY` 必须与 Flask 侧完全一致：
+
+```powershell
+# 生成一个新密钥（任一侧生成后同步给另一侧）
+python -c "import secrets;print(secrets.token_hex(24))"
+```
+
+- 只写进各自机器的本地 `.env`，不进仓库、不写进文档、不进日志。
+- `.env.example` 里只留空值，不要填真实密钥。
+- 请求头固定为 `X-Format-Key: <FORMAT_ENGINE_KEY>`；`/api/v1/health` 豁免。
+
+### 启动
+
+推荐用脚本，它会读取仓库根目录的 `.env` 再启动：
+
+```powershell
+.\run_engine.bat
+```
+
+等价的手工方式：
+
+```powershell
+$env:FORMAT_ENGINE_KEY="<与 Flask 相同的密钥>"
+$env:UPLOAD_DIR="F:\Paper-format-check\uploads"
+$env:REPORT_DIR="F:\Paper-format-check\reports"
+backend\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8010
+```
+
+启动自检规则：
+
+| 情况 | 行为 |
+|---|---|
+| `FORMAT_ENGINE_KEY` 为空 | 抛 `RuntimeError`，服务不启动 |
+| 规则目录不存在 | 抛 `RuntimeError`，服务不启动 |
+| 上传/报告目录不存在 | 自动创建 |
+| 中文字体缺失 | 只打警告，检测可用，PDF 报告会失败 |
+
+### 目录与保留期
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `UPLOAD_DIR` | `uploads` | 上传临时文件，检测结束即删 |
+| `REPORT_DIR` | `reports` | PDF 与 sidecar 元数据 `{report_id}.json` |
+| `PAPER_RULES_DIR` | `rules` | 规则集目录 |
+| `PAPER_RULES_DEFAULT` | `default` | 默认规则集 |
+| `TASK_TTL_SECONDS` | `86400` | 内存任务兜底 TTL，懒清理 |
+| `REPORT_TTL_SECONDS` | `259200` | 引擎报告保留 3 天 |
+
+清理是**懒清理**：`upload` / `detect/start` / `detect/result` / `report/create` / `report/download` 入口顺手清一次过期任务与过期报告，不额外起后台线程。
+
+### 报告字体
+
+解析顺序：`REPORT_FONT_PATH` → 平台默认候选。
+
+```text
+Windows  C:\Windows\Fonts\simhei.ttf
+Linux    /usr/share/fonts/truetype/noto/NotoSansSC-Regular.ttf
+Linux    /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+Linux    /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
+```
+
+显式配置了 `REPORT_FONT_PATH` 但文件不存在时会直接报错，不会静默换成别的字体。
+
+### 冒烟
+
+```bash
+export ENGINE=http://127.0.0.1:8010
+export KEY=<FORMAT_ENGINE_KEY>
+
+curl -s $ENGINE/api/v1/health
+curl -s -o /dev/null -w '%{http_code}\n' $ENGINE/api/v1/rule/list        # 期望 401
+curl -s -H "X-Format-Key: $KEY" $ENGINE/api/v1/rule/list                 # 期望 200
+```
+
 ## 初始化前端
 
 ```powershell
@@ -92,7 +176,7 @@ npm run dev
 
 本阶段已完成以下验证：
 
-- 后端测试：`151 passed`（0 warning，加 `-W error` 亦通过）。测试临时目录已通过 `.verification-tmp/pytest` 隔离，31 个权限错误不属于业务失败。
+- 后端测试：`257 passed`（`pytest` 全绿）。测试临时目录已通过 `.verification-tmp/pytest` 隔离，31 个权限错误不属于业务失败。
 - 前端测试：使用 `npm.cmd test -- --run`，结果为 `2 files passed, 3 tests passed`。
 - 前端生产构建：使用 `npm.cmd run build`，TypeScript 编译和 Vite 构建均成功。
 - 端到端功能链路：使用真实 `.docx` 文件验证上传、检测、结果、格式分析、PDF 报告下载和任务清理。

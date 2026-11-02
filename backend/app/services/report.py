@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import html
+import json
+import logging
 import os
 import re
 from collections import OrderedDict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from reportlab.lib.enums import TA_CENTER
@@ -35,8 +38,20 @@ from ..services.task_store import TaskRecord
 
 REPORT_DIR = Path(os.getenv("REPORT_DIR", "reports"))
 REPORT_FONT_NAME = "PaperCheckerChinese"
-REPORT_FONT_PATH = Path(os.getenv("REPORT_FONT_PATH", r"C:\Windows\Fonts\simhei.ttf"))
 ERROR_EXCERPT_LENGTH = 30
+DEFAULT_REPORT_FILENAME = "格式检测报告.pdf"
+
+logger = logging.getLogger(__name__)
+
+# 字体解析顺序：显式环境变量 → Windows 默认 → 常见 Linux / 容器路径。
+# 最后两项覆盖 Dockerfile 里 apt 安装的 Noto 与发行版自带的文泉驿。
+REPORT_FONT_CANDIDATES = (
+    r"C:\Windows\Fonts\simhei.ttf",
+    "/usr/share/fonts/truetype/noto/NotoSansSC-Regular.ttf",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+)
+REPORT_FONT_MISSING = "中文 PDF 字体不存在，请设置 REPORT_FONT_PATH 指向可用的 .ttf / .ttc 文件"
 
 INK = colors.HexColor("#1F3A2E")
 MUTED = colors.HexColor("#5B6B63")
@@ -54,11 +69,75 @@ def report_path(report_id: str) -> Path:
     return REPORT_DIR / f"{report_id}.pdf"
 
 
+def sidecar_path(report_id: str) -> Path:
+    """报告元数据：PDF 旁边的小 JSON，用来让下载不再依赖内存任务。"""
+    return REPORT_DIR / f"{report_id}.json"
+
+
+def utc_now_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def write_report_meta(report_id: str, *, task_id: str, filename: str, source_filename: str) -> None:
+    """写 sidecar；失败只记日志，不能让已经生成好的 PDF 白做。"""
+    payload = {
+        "report_id": report_id,
+        "task_id": task_id,
+        "filename": filename,
+        "source_filename": source_filename,
+        "created_at": utc_now_iso(),
+        "expires_at": (
+            datetime.now(timezone.utc) + timedelta(seconds=report_ttl_seconds())
+        ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    try:
+        sidecar_path(report_id).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        logger.warning("报告元数据写入失败：%s", report_id, exc_info=True)
+
+
+def read_report_meta(report_id: str) -> dict | None:
+    """读 sidecar；缺失或损坏都返回 None，由调用方回退默认文件名。"""
+    try:
+        return json.loads(sidecar_path(report_id).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def report_ttl_seconds() -> int:
+    try:
+        return int(os.getenv("REPORT_TTL_SECONDS", "259200"))
+    except ValueError:
+        return 259200
+
+
+def report_font_path() -> Path:
+    """按「环境变量 → 平台默认」的顺序找中文字体；找不到时抛明确错误。
+
+    显式配置了 `REPORT_FONT_PATH` 但文件不存在时直接报错，而不是悄悄换成别的
+    字体——否则部署时配错了也看不出来。
+    """
+    explicit = os.getenv("REPORT_FONT_PATH", "").strip()
+    if explicit:
+        path = Path(explicit)
+        if not path.is_file():
+            raise RuntimeError(f"{REPORT_FONT_MISSING}（当前配置：{path}）")
+        return path
+    for candidate in REPORT_FONT_CANDIDATES:
+        path = Path(candidate)
+        if path.is_file():
+            return path
+    raise RuntimeError(REPORT_FONT_MISSING)
+
+
 def ensure_report_font() -> str:
     if REPORT_FONT_NAME not in pdfmetrics.getRegisteredFontNames():
-        if not REPORT_FONT_PATH.exists():
-            raise RuntimeError("中文 PDF 字体不存在")
-        pdfmetrics.registerFont(TTFont(REPORT_FONT_NAME, str(REPORT_FONT_PATH)))
+        path = report_font_path()
+        # .ttc 是字体集合，必须指定子字体序号，否则 reportlab 读不出来。
+        if path.suffix.lower() == ".ttc":
+            pdfmetrics.registerFont(TTFont(REPORT_FONT_NAME, str(path), subfontIndex=0))
+        else:
+            pdfmetrics.registerFont(TTFont(REPORT_FONT_NAME, str(path)))
     return REPORT_FONT_NAME
 
 

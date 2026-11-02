@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from ..services.cleanup import run_lazy_cleanup
 from ..services.task_store import TaskRecord, store
 
 # 每个 router 是"一组"接口。prefix 先拼 /upload，main.py 再统一拼版本号 /api/v1
@@ -22,6 +23,8 @@ READ_CHUNK = 1024 * 1024                            # 每次读 1MB，避免整�
 @router.post("")
 async def upload_paper(file: UploadFile = File(...)) -> dict:
     """接收老师上传的论文文件。校验通过后保存，返回任务编号。"""
+
+    run_lazy_cleanup()
 
     # 校验1：扩展名必须在白名单里（Path(file.filename).suffix 取出".docx"这种尾巴）
     suffix = Path(file.filename or "").suffix.lower()
@@ -60,8 +63,13 @@ async def upload_paper(file: UploadFile = File(...)) -> dict:
         target.unlink(missing_ok=True)
         raise HTTPException(
             status_code=413,
-            detail=f"文件超过 {MAX_UPLOAD_MB}MB 大小限制",
+            detail=f"文件超过 {MAX_UPLOAD_MB}MB 大小限制（当前 {size / 1024 / 1024:.1f}MB）",
         )
+
+    # 空文件：写入 0 字节说明浏览器没真的带上内容，zip 校验只会给出误导性的"不是有效文档"
+    if size == 0:
+        target.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="文件为空，请重新选择文件")
 
     try:
         with zipfile.ZipFile(target) as archive:

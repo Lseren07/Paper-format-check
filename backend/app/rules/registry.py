@@ -48,6 +48,9 @@ class RuleSetInfo(BaseModel):
     source_available: bool = False
     source_title: str | None = None
     source_document: str | None = None
+    source_organization: str | None = None
+    source_scope: str | None = None
+    source_clause_count: int = 0
     loadable: bool = True
     error: str | None = None
 
@@ -112,6 +115,9 @@ def _describe(path: Path, rules: RuleSet) -> RuleSetInfo:
         source_available=source is not None,
         source_title=source.title if source else None,
         source_document=source.document if source else None,
+        source_organization=source.organization if source else None,
+        source_scope=source.scope if source else None,
+        source_clause_count=len(source.clauses) if source else 0,
     )
 
 
